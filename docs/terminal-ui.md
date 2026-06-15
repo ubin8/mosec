@@ -14,7 +14,7 @@ The first version shows:
 
 - a compact mascot on the left
 - the MoSec wordmark on the right
-- a minimal input dock beneath the brand block
+- a minimal prompt dock beneath the art block
 
 ## Keyboard behavior
 
@@ -25,6 +25,12 @@ The first version shows:
 ## Non-interactive behavior
 
 If MoSec is started without a TTY, it prints the screen once and exits cleanly.
+
+## Prompt style
+
+- The prompt is a plain `>` prompt.
+- The art block is not framed by a box.
+- Separator lines appear above and below the prompt area.
 
 ## Relationship to the CLI
 

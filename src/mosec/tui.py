@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
@@ -14,17 +15,15 @@ BRAND_FALLBACK = (
 )
 
 MASCOT_FALLBACK = (
-    "    ▓▓▓▓▓▓\n"
-    "  ▓████████▓\n"
-    " ▓██████████▓\n"
-    "▓████████████▓\n"
-    "▓███▓▓▓▓▓▓███▓\n"
-    "▓██▓░░░░░░▓██▓\n"
-    "▓██▓░▓██▓░▓██▓\n"
-    " ▓██▓░▓▓░▓██▓\n"
-    "  ▓██▓▓▓▓██▓\n"
-    "   ▓██████▓"
+    "   ▄█████▄\n"
+    "  ██▀███▀██\n"
+    " ▄█████████▄\n"
+    "▀▀█████████▀▀\n"
+    "  █████████\n"
+    "  ▀▀▀███▀▀▀"
 )
+
+PROMPT_SEPARATOR = "─" * 72
 
 
 def _load_text_asset(filename: str, fallback: str) -> str:
@@ -40,7 +39,7 @@ def load_brand_art() -> str:
 
 
 def load_mascot_art() -> str:
-    return _load_text_asset("mascot.txt", MASCOT_FALLBACK)
+    return _load_text_asset("geist_art.txt", MASCOT_FALLBACK)
 
 
 def _render_side_by_side(left: list[str], right: list[str], gap: int = 4) -> list[str]:
@@ -51,42 +50,27 @@ def _render_side_by_side(left: list[str], right: list[str], gap: int = 4) -> lis
     for index in range(rows):
         left_line = left[index] if index < len(left) else ""
         right_line = right[index] if index < len(right) else ""
-        rendered.append(
-            f"{left_line.ljust(left_width)}{' ' * gap}{right_line.ljust(right_width)}".rstrip()
-        )
+        rendered.append(f"{left_line.ljust(left_width)}{' ' * gap}{right_line}".rstrip())
     return rendered
-
-
-def _border(width: int, left: str, fill: str, right: str) -> str:
-    body = max(width - 2, 0)
-    return f"{left}{fill * body}{right}" if body > 0 else left + right
-
-
-def _center(text: str, width: int) -> str:
-    if len(text) >= width:
-        return text
-    pad_left = (width - len(text)) // 2
-    return f"{' ' * pad_left}{text}"
 
 
 def render_home_screen(width: int | None = None) -> str:
     width = width or max(get_terminal_size((120, 36)).columns, 96)
-    content_width = min(width, 110)
-
-    mascot_lines = load_mascot_art().splitlines()
-    brand_lines = load_brand_art().splitlines()
-    header_lines = _render_side_by_side(mascot_lines, brand_lines, gap=6)
+    art_lines = _render_side_by_side(
+        load_mascot_art().splitlines(),
+        load_brand_art().splitlines(),
+        gap=6,
+    )
 
     lines: list[str] = []
-    lines.append(_border(content_width, "┌", "─", "┐"))
-    lines.append(f"│{_center('', content_width - 2):<{content_width - 2}}│")
-    for line in header_lines:
-        lines.append(f"│ {line.ljust(content_width - 3)}│")
-    lines.append(f"│{_center('', content_width - 2):<{content_width - 2}}│")
-    lines.append(_border(content_width, "├", "─", "┤"))
-    lines.append(f"│{' >'.ljust(content_width - 2)}│")
-    lines.append(_border(content_width, "└", "─", "┘"))
+    lines.extend(art_lines)
+    lines.append("")
     return "\n".join(lines)
+
+
+def _write_line(text: str = "") -> None:
+    sys.stdout.write(text + "\n")
+    sys.stdout.flush()
 
 
 def launch_home_screen(
@@ -102,16 +86,18 @@ def launch_home_screen(
     if not interactive:
         return 0
 
-    while True:
-        choice = input_func("mosec> ").strip().lower()
-        if choice in {"q", "quit", "exit"}:
-            return 0
-        if choice in {"h", "help", "?"}:
-            output_func("Shortcuts: s = scan current directory, q = quit, ? = help")
-            continue
-        if choice in {"s", "scan"}:
-            output_func("Run `mosec scan .` to scan the current directory.")
-            return 0
-        if choice == "":
-            continue
-        output_func("Unknown command. Type `?` for help.")
+    _write_line(PROMPT_SEPARATOR)
+    choice = input_func("> ").strip().lower()
+    _write_line(PROMPT_SEPARATOR)
+
+    if choice in {"q", "quit", "exit", ""}:
+        return 0
+    if choice in {"h", "help", "?"}:
+        output_func("Shortcuts: s = scan current directory, q = quit, ? = help")
+        return 0
+    if choice in {"s", "scan"}:
+        output_func("Run `mosec scan .` to scan the current directory.")
+        return 0
+
+    output_func("Unknown command. Type `?` for help.")
+    return 0
