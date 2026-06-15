@@ -4,8 +4,11 @@ This repository keeps the public documentation focused on the current product an
 
 ## Start here
 
+- [Roadmap](roadmap.md)
 - [Getting Started](getting-started.md)
 - [Terminal UI](terminal-ui.md)
+- [TUI Command List](tui-command-list.md)
+- [Command System](command-system.md)
 - [CLI Reference](cli-reference.md)
 - [Configuration](configuration.md)
 

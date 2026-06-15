@@ -44,5 +44,4 @@ Example:
 mosec scan . --format sarif --fail-on high
 ```
 
-Native GitHub and GitLab integrations are planned as product work; SARIF export is the current portable integration surface.
-
+Native GitHub and GitLab integrations are planned as product work; SARIF export is the current portable integration surface. The TUI will eventually surface the same reports interactively.

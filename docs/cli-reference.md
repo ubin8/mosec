@@ -1,5 +1,7 @@
 # CLI Reference
 
+This page covers the automation CLI. The interactive slash-command shell is documented in [TUI Command List](tui-command-list.md) and [Command System](command-system.md).
+
 ## Commands
 
 ### `mosec`
@@ -8,7 +10,7 @@ Open the terminal home screen. This is the default behavior when no subcommand i
 
 ### `mosec scan <path>`
 
-Scan a repository or a single file.
+Scan a repository or a single file from the automation CLI.
 
 Useful options:
 

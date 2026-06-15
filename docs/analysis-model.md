@@ -51,5 +51,4 @@ MoSec models:
 - reachability
 - branch context
 
-This lets the scanner explain why a finding exists and how far the flow traveled.
-
+This lets MoSec explain why a finding exists and how far the flow traveled, whether the analysis was started from the CLI or through a TUI command.

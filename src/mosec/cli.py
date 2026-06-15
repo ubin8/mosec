@@ -20,7 +20,7 @@ from .tui import launch_home_screen
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mosec",
-        description="MoSec terminal console and CLI scanner",
+        description="MoSec terminal workbench and automation CLI",
         epilog=(
             "Examples:\n"
             "  mosec\n"

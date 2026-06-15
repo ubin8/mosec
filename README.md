@@ -1,12 +1,12 @@
 # MoSec
 
-MoSec is a CLI-first application security scanner for source code, configuration files, and mobile manifests.
+MoSec is a TUI-first application security workbench with a CLI automation layer for source code, configuration files, and mobile manifests.
 
-It is built around a Python command-line tool today, with a Rust workspace reserved for future performance-critical analysis components.
+The terminal UI is the main product surface. The CLI remains available for automation, CI, and scripted scans.
 
 ## What MoSec does
 
-- Scans local repositories and single files from the command line
+- Scans local repositories and single files from the terminal workbench or the CLI
 - Detects secrets, vulnerable dependencies, and common web application issues
 - Understands multiple languages and frameworks
 - Produces text, JSON, and SARIF reports
@@ -22,11 +22,16 @@ mosec version
 mosec scan .
 ```
 
+The interactive shell is designed around exact slash commands such as `/help`, `/scan`, and `/scan-quick`.
+
 ## Documentation
 
 - [Documentation Index](docs/README.md)
+- [Roadmap](docs/roadmap.md)
 - [Getting Started](docs/getting-started.md)
 - [Terminal UI](docs/terminal-ui.md)
+- [TUI Command List](docs/tui-command-list.md)
+- [Command System](docs/command-system.md)
 - [CLI Reference](docs/cli-reference.md)
 - [Configuration](docs/configuration.md)
 - [Analysis Model](docs/analysis-model.md)
@@ -50,9 +55,9 @@ mosec scan .
 
 ## Current Scope
 
-- Python owns the CLI, configuration, reporting, and repository orchestration.
+- Python owns the CLI, TUI, configuration, reporting, and repository orchestration.
 - Rust is reserved for parser, taint, and other compute-heavy modules later.
-- The current release focuses on local scanning and CI-friendly output.
+- The current release focuses on the TUI shell, local scanning, and CI-friendly output.
 
 ## Versioning
 

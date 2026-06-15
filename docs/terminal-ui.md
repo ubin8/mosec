@@ -5,8 +5,8 @@ MoSec starts with a terminal home screen when you run `mosec` without arguments.
 ## What it is for
 
 - Fast orientation in the tool
-- Clear entry point for people using the scanner interactively
-- A visual front door for scan, rules, report, and mobile workflows
+- A command-driven interactive workbench
+- A visual front door for scan, rules, report, mobile, and settings workflows
 
 ## Current screen
 
@@ -16,11 +16,19 @@ The first version shows:
 - the MoSec wordmark on the right
 - a minimal prompt dock beneath the art block
 
-## Keyboard behavior
+## Command model
 
-- `q` exits the interactive mode
-- `h` shows help
-- `s` prints a quick scan hint
+- The interactive shell is designed around exact slash commands.
+- The command list is defined in [TUI Command List](tui-command-list.md).
+- The routing model is defined in [Command System](command-system.md).
+
+Examples:
+
+- `/help`
+- `/scan`
+- `/scan-quick`
+- `/scan-web`
+- `/scan-mobile`
 
 ## Non-interactive behavior
 
@@ -35,5 +43,5 @@ If MoSec is started without a TTY, it prints the screen once and exits cleanly.
 ## Relationship to the CLI
 
 - `mosec` opens the home screen
-- `mosec scan <path>` runs the scanner directly
+- `mosec scan <path>` runs the automation CLI directly
 - `mosec version` prints the installed version
