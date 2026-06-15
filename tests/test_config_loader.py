@@ -24,7 +24,7 @@ def test_build_default_scan_config_uses_current_working_directory() -> None:
 
 
 def test_load_scan_config_file_resolves_relative_paths() -> None:
-    config = load_scan_config_file(Path("fixtures/config/appsec.toml"))
+    config = load_scan_config_file(Path("fixtures/config/mosec.toml"))
 
     assert config.output_format == "json"
     assert config.root is not None

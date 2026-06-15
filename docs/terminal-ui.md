@@ -1,0 +1,35 @@
+# Terminal UI
+
+MoSec starts with a terminal home screen when you run `mosec` without arguments.
+
+## What it is for
+
+- Fast orientation in the tool
+- Clear entry point for people using the scanner interactively
+- A visual front door for scan, rules, report, and mobile workflows
+
+## Current screen
+
+The first version shows:
+
+- the MoSec mascot / logo
+- the product name and status
+- the main navigation labels
+- a short list of keyboard hints
+
+## Keyboard behavior
+
+- `q` exits
+- `h` shows help
+- `s` prints a quick scan hint
+
+## Non-interactive behavior
+
+If MoSec is started without a TTY, it prints the screen once and exits cleanly.
+
+## Relationship to the CLI
+
+- `mosec` opens the home screen
+- `mosec scan <path>` runs the scanner directly
+- `mosec version` prints the installed version
+

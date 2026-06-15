@@ -14,14 +14,16 @@ from .config import (
 from .policy import findings_exceed_threshold
 from .reporting import render_json, render_sarif, render_text
 from .scanner import scan_repository
+from .tui import launch_home_screen
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mosec",
-        description="CLI-first MoSec analysis tool",
+        description="MoSec terminal console and CLI scanner",
         epilog=(
             "Examples:\n"
+            "  mosec\n"
             "  mosec scan .\n"
             "  mosec scan . --format json --fail-on high\n"
             "  mosec version"
@@ -105,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if not argv:
+        return launch_home_screen(interactive=sys.stdin.isatty() and sys.stdout.isatty())
+
     parser = build_parser()
     args = parser.parse_args(argv)
 

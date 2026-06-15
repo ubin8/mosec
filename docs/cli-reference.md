@@ -2,6 +2,10 @@
 
 ## Commands
 
+### `mosec`
+
+Open the terminal home screen. This is the default behavior when no subcommand is provided.
+
 ### `mosec scan <path>`
 
 Scan a repository or a single file.
@@ -38,6 +42,5 @@ Print the installed CLI version.
 ```bash
 mosec scan .
 mosec scan . --format json --fail-on high
-mosec scan ./repo --config fixtures/config/appsec.toml --baseline fixtures/baseline/baseline.json
+mosec scan ./repo --config fixtures/config/mosec.toml --baseline fixtures/baseline/baseline.json
 ```
-

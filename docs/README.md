@@ -5,6 +5,7 @@ This repository keeps the public documentation focused on the current product an
 ## Start here
 
 - [Getting Started](getting-started.md)
+- [Terminal UI](terminal-ui.md)
 - [CLI Reference](cli-reference.md)
 - [Configuration](configuration.md)
 
@@ -20,4 +21,3 @@ This repository keeps the public documentation focused on the current product an
 - [Development](development.md)
 - [Troubleshooting](troubleshooting.md)
 - [Versioning](versioning.md)
-

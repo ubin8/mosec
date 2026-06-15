@@ -17,6 +17,7 @@ It is built around a Python command-line tool today, with a Rust workspace reser
 
 ```bash
 python -m pip install -e ".[dev]"
+mosec
 mosec version
 mosec scan .
 ```
@@ -25,6 +26,7 @@ mosec scan .
 
 - [Documentation Index](docs/README.md)
 - [Getting Started](docs/getting-started.md)
+- [Terminal UI](docs/terminal-ui.md)
 - [CLI Reference](docs/cli-reference.md)
 - [Configuration](docs/configuration.md)
 - [Analysis Model](docs/analysis-model.md)

@@ -33,6 +33,10 @@ Source = "https://github.com/ubin8/mosec"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+mosec = ["ascii-art.txt"]

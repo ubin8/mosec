@@ -14,6 +14,7 @@ python -m pip install -e ".[dev]"
 ## Verify the install
 
 ```bash
+mosec
 mosec version
 ```
 
@@ -21,6 +22,12 @@ mosec version
 
 ```bash
 mosec scan .
+```
+
+## Open the terminal home screen
+
+```bash
+mosec
 ```
 
 ## Choose an output format
@@ -33,12 +40,12 @@ mosec scan . --format sarif
 ## Use a config file
 
 ```bash
-mosec scan . --config fixtures/config/appsec.toml
+mosec scan . --config fixtures/config/mosec.toml
 ```
 
 ## What to expect
 
 - `mosec scan` prints a human-readable summary by default
+- `mosec` without arguments opens the terminal home screen
 - `--format json` emits the full machine-readable report
 - `--format sarif` emits SARIF for code hosts and CI pipelines
-

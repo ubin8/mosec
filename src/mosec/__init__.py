@@ -15,5 +15,6 @@ from .ir import IRAssignment, IRCall, IRDocument, IRLiteral, IRLocation, IRMembe
 from .rules import MatchStrategy, Rule, RuleCategory, RulePack, RulePattern, RuleTarget
 from .taint import TaintLineage, TaintState, assignment_propagation_metadata, build_assignment_taint_state, is_string_escape_sanitized_expression, is_url_allowlist_guard_expression, line_uses_tainted_assignment, line_uses_tainted_flow, taint_propagation_metadata
 from .sources import AUTH_CONTEXT_SOURCE_MARKERS, AUTH_GUARD_MARKERS, BODY_SOURCE_MARKERS, COOKIE_SOURCE_MARKERS, HEADER_SOURCE_MARKERS, QUERY_SOURCE_MARKERS, ROLE_GUARD_MARKERS, SourceKind, USER_INPUT_SOURCE_KINDS, is_auth_context_reference, is_auth_guard_reference, is_body_source_reference, is_cookie_source_reference, is_header_source_reference, is_query_source_reference, is_role_guard_reference, is_user_input_source_kind
+from .tui import launch_home_screen, render_home_screen
 
 __version__ = "0.1.0"
