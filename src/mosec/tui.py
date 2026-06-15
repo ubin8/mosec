@@ -133,9 +133,7 @@ def _launch_home_screen_curses() -> int:
         height, width = stdscr.getmaxyx()
 
         lines = _build_home_screen_lines(width=width, height=height)
-        prompt_row = min(len(lines), max(height - 3, 0))
-        if prompt_row + 2 >= height:
-            prompt_row = max(height - 3, 0)
+        prompt_row = min(max(height // 2 - 2, 8), max(height - 3, 0))
 
         for row, line in enumerate(lines[:prompt_row]):
             if row >= height:
