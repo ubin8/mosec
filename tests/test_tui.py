@@ -5,9 +5,12 @@ from mosec.tui import render_home_screen
 def test_render_home_screen_contains_logo_and_navigation() -> None:
     screen = render_home_screen(width=96)
 
-    assert "MoSec" in screen
-    assert "Scan | Rules | Reports | Mobile | Settings" in screen
     assert "████" in screen or "███" in screen
+    assert "MoSec  Healthy" not in screen
+    assert "CLI-first application security scanner" not in screen
+    assert "Scan | Rules | Reports | Mobile | Settings" not in screen
+    assert "Type `s` for a quick scan hint" not in screen
+    assert " >" in screen
 
 
 def test_main_without_arguments_prints_home_screen(capsys) -> None:

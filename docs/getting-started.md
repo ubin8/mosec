@@ -47,5 +47,6 @@ mosec scan . --config fixtures/config/mosec.toml
 
 - `mosec scan` prints a human-readable summary by default
 - `mosec` without arguments opens the terminal home screen
+- the home screen uses a compact mascot and wordmark layout
 - `--format json` emits the full machine-readable report
 - `--format sarif` emits SARIF for code hosts and CI pipelines

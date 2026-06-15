@@ -12,14 +12,13 @@ MoSec starts with a terminal home screen when you run `mosec` without arguments.
 
 The first version shows:
 
-- the MoSec mascot / logo
-- the product name and status
-- the main navigation labels
-- a short list of keyboard hints
+- a compact mascot on the left
+- the MoSec wordmark on the right
+- a minimal input dock beneath the brand block
 
 ## Keyboard behavior
 
-- `q` exits
+- `q` exits the interactive mode
 - `h` shows help
 - `s` prints a quick scan hint
 
@@ -32,4 +31,3 @@ If MoSec is started without a TTY, it prints the screen once and exits cleanly.
 - `mosec` opens the home screen
 - `mosec scan <path>` runs the scanner directly
 - `mosec version` prints the installed version
-

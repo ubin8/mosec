@@ -39,4 +39,4 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-mosec = ["ascii-art.txt"]
+mosec = ["ascii-art.txt", "mascot.txt"]
