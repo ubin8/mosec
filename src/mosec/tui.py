@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
@@ -56,21 +55,19 @@ def _render_side_by_side(left: list[str], right: list[str], gap: int = 4) -> lis
 
 def render_home_screen(width: int | None = None) -> str:
     width = width or max(get_terminal_size((120, 36)).columns, 96)
+    content_width = min(width, 110)
     art_lines = _render_side_by_side(
         load_mascot_art().splitlines(),
         load_brand_art().splitlines(),
-        gap=6,
+        gap=12,
     )
+    art_width = max((len(line) for line in art_lines), default=0)
+    left_pad = max((content_width - art_width) // 2, 0)
 
     lines: list[str] = []
-    lines.extend(art_lines)
+    lines.extend(f"{' ' * left_pad}{line}" for line in art_lines)
     lines.append("")
     return "\n".join(lines)
-
-
-def _write_line(text: str = "") -> None:
-    sys.stdout.write(text + "\n")
-    sys.stdout.flush()
 
 
 def launch_home_screen(
@@ -86,9 +83,8 @@ def launch_home_screen(
     if not interactive:
         return 0
 
-    _write_line(PROMPT_SEPARATOR)
+    output_func(PROMPT_SEPARATOR.ljust(width or 72, "─"))
     choice = input_func("> ").strip().lower()
-    _write_line(PROMPT_SEPARATOR)
 
     if choice in {"q", "quit", "exit", ""}:
         return 0
