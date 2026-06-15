@@ -3,9 +3,9 @@ import json
 
 import pytest
 
-from appsec_cli.config import ScanConfig
-from appsec_cli.scanner import scan_repository
-from appsec_cli.workflow import load_manual_overrides_file
+from mosec.config import ScanConfig
+from mosec.scanner import scan_repository
+from mosec.workflow import load_manual_overrides_file
 
 
 def test_manual_override_fixture_loads() -> None:

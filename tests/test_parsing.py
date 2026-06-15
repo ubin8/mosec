@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from appsec_cli.detection import Framework, Language, FileClassification
-from appsec_cli.ingestion import DiscoveredFile
-from appsec_cli.parsing import ParseSeverity, ParserRegistry, parse_files
+from mosec.detection import Framework, Language, FileClassification
+from mosec.ingestion import DiscoveredFile
+from mosec.parsing import ParseSeverity, ParserRegistry, parse_files
 
 
 def test_python_parser_reports_syntax_errors(tmp_path: Path) -> None:

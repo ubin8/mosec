@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from appsec_cli.detection import Framework, Language, classify_file
-from appsec_cli.ingestion import DiscoveredFile
+from mosec.detection import Framework, Language, classify_file
+from mosec.ingestion import DiscoveredFile
 
 
 def test_detect_python_framework_from_content(tmp_path: Path) -> None:

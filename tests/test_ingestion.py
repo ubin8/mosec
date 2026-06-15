@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-import appsec_cli.ingestion as ingestion
-from appsec_cli.ingestion import discover_files
+import mosec.ingestion as ingestion
+from mosec.ingestion import discover_files
 
 
 def test_discover_files_filters_binary_empty_and_excludes(tmp_path: Path) -> None:

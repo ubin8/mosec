@@ -3,10 +3,10 @@ import json
 
 import pytest
 
-from appsec_cli.config import ScanConfig
-from appsec_cli.findings import TriageStatus
-from appsec_cli.scanner import scan_repository
-from appsec_cli.workflow import load_suppressions_file
+from mosec.config import ScanConfig
+from mosec.findings import TriageStatus
+from mosec.scanner import scan_repository
+from mosec.workflow import load_suppressions_file
 
 
 def _repo_root() -> Path:

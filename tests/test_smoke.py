@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from appsec_cli.config import ScanConfig
-from appsec_cli.audit import AuditEntry
-from appsec_cli.detection import Framework, Language
-from appsec_cli.findings import (
+from mosec.config import ScanConfig
+from mosec.audit import AuditEntry
+from mosec.detection import Framework, Language
+from mosec.findings import (
     CodeLocation,
     CodeSymbolReference,
     Confidence,
@@ -12,10 +12,10 @@ from appsec_cli.findings import (
     Severity,
     TriageStatus,
 )
-from appsec_cli.rules import MatchStrategy, Rule, RuleCategory, RulePattern, RuleTarget, RulePack
-from appsec_cli.models import ScanResult
-from appsec_cli.scanner import scan_repository
-from appsec_cli.workflow import apply_baseline_and_suppressions, BaselineEntry, Suppression, SuppressionTarget
+from mosec.rules import MatchStrategy, Rule, RuleCategory, RulePattern, RuleTarget, RulePack
+from mosec.models import ScanResult
+from mosec.scanner import scan_repository
+from mosec.workflow import apply_baseline_and_suppressions, BaselineEntry, Suppression, SuppressionTarget
 
 
 def test_scan_repository_returns_result(tmp_path: Path) -> None:
@@ -201,7 +201,7 @@ def test_scan_result_prioritizes_reachable_findings(tmp_path: Path) -> None:
 
 
 def test_scan_result_serializes_parsed_documents(tmp_path: Path) -> None:
-    from appsec_cli.parsing import ParsedDocument
+    from mosec.parsing import ParsedDocument
 
     document = ParsedDocument(
         path=tmp_path / "a.py",

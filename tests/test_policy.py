@@ -5,12 +5,12 @@ from io import StringIO
 import json
 from pathlib import Path
 
-from appsec_cli.cli import main
-from appsec_cli.config import ScanConfig
-from appsec_cli.findings import Confidence, Evidence, Finding, Severity, CodeLocation
-from appsec_cli.policy import findings_exceed_threshold, policy_decision_for
-from appsec_cli.scanner import scan_repository
-from appsec_cli.reporting import render_sarif
+from mosec.cli import main
+from mosec.config import ScanConfig
+from mosec.findings import Confidence, Evidence, Finding, Severity, CodeLocation
+from mosec.policy import findings_exceed_threshold, policy_decision_for
+from mosec.scanner import scan_repository
+from mosec.reporting import render_sarif
 
 
 def test_findings_exceed_threshold_detects_high_severity(tmp_path: Path) -> None:

@@ -70,7 +70,7 @@ def render_sarif(result: ScanResult) -> str:
             {
                 "tool": {
                     "driver": {
-                        "name": "mosec-cli",
+                        "name": "mosec",
                         "version": "0.1.0",
                         "rules": list(rules_by_id.values()),
                     }

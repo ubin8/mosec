@@ -1,4 +1,4 @@
-from appsec_cli import (
+from mosec import (
     AUTH_CONTEXT_SOURCE_MARKERS,
     AUTH_GUARD_MARKERS,
     BODY_SOURCE_MARKERS,

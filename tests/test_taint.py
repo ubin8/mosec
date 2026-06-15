@@ -1,4 +1,4 @@
-from appsec_cli import assignment_propagation_metadata, build_assignment_taint_state, is_string_escape_sanitized_expression, is_url_allowlist_guard_expression, line_uses_tainted_assignment, line_uses_tainted_flow, taint_propagation_metadata
+from mosec import assignment_propagation_metadata, build_assignment_taint_state, is_string_escape_sanitized_expression, is_url_allowlist_guard_expression, line_uses_tainted_assignment, line_uses_tainted_flow, taint_propagation_metadata
 
 
 def test_assignment_taint_tracks_aliases() -> None:

@@ -3,18 +3,33 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mosec-cli"
+name = "mosec"
 version = "0.1.0"
-description = "CLI-first MoSec analysis tool"
+description = "CLI-first application security scanner"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Lucas" }]
+keywords = ["security", "sast", "scanner", "sarif", "mobile"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
 [project.scripts]
-mosec = "appsec_cli.cli:main"
+mosec = "mosec.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ubin8/mosec"
+Documentation = "https://github.com/ubin8/mosec/tree/main/docs"
+Source = "https://github.com/ubin8/mosec"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

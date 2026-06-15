@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from appsec_cli.detection import FileClassification, Framework, Language
-from appsec_cli.detectors import run_detectors
-from appsec_cli.parsing import ParsedDocument
-from appsec_cli.sca import DependencyRecord, DependencyScope, LocalAdvisoryBackend
+from mosec.detection import FileClassification, Framework, Language
+from mosec.detectors import run_detectors
+from mosec.parsing import ParsedDocument
+from mosec.sca import DependencyRecord, DependencyScope, LocalAdvisoryBackend
 
 
 def test_detects_secrets_sqli_and_sca(tmp_path: Path) -> None:

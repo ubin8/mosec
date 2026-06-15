@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from appsec_cli.findings import Confidence, Severity
-from appsec_cli.rule_loader import RulePackError, load_rule_pack
-from appsec_cli.rules import MatchStrategy, RuleCategory
+from mosec.findings import Confidence, Severity
+from mosec.rule_loader import RulePackError, load_rule_pack
+from mosec.rules import MatchStrategy, RuleCategory
 
 
 def test_load_rule_pack_from_toml_fixture() -> None:

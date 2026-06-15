@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from appsec_cli.config import (
+from mosec.config import (
     ConfigError,
     ScanConfig,
     build_default_scan_config,

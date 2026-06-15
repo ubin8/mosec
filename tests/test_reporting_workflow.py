@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from appsec_cli.audit import AuditEntry
-from appsec_cli.models import ScanResult
-from appsec_cli.reporting import render_json, render_sarif, render_text
+from mosec.audit import AuditEntry
+from mosec.models import ScanResult
+from mosec.reporting import render_json, render_sarif, render_text
 
 def test_json_report_matches_golden_fixture() -> None:
     result = ScanResult(root=Path("fixtures/secrets/python"))

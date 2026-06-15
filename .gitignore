@@ -1,17 +1,18 @@
-# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
 .venv/
 venv/
-dist/
+env/
 build/
-*.pyc
-
-# Rust
-target/
-
-# Local tooling
+dist/
+*.egg-info/
+*.log
 .DS_Store
-
+rust/target/
