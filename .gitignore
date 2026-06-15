@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.pyc
+
+# Rust
+target/
+
+# Local tooling
+.DS_Store
+

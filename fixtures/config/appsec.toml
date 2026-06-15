@@ -1,0 +1,14 @@
+root = ".."
+format = "json"
+include = ["src/**"]
+exclude = ["tests/**", "**/dist/**"]
+baseline = "../baseline/baseline.json"
+suppressions = "../suppressions/suppressions.json"
+overrides = "../overrides/manual-overrides.json"
+fail_on = "high"
+verbose = false
+quiet = false
+
+[branch_fail_on]
+main = "critical"
+release = "high"

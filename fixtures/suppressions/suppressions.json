@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "suppressions": [
+    {
+      "target": {
+        "rule_id": "WEB-SQLI-001",
+        "path": "fixtures/web/python/raw_sql.py",
+        "start_line": 2
+      },
+      "reason": "demonstration suppression for fixture testing",
+      "author": "test-user",
+      "created_at": "2026-06-14T00:00:00Z",
+      "expires_at": "2027-06-14T00:00:00Z",
+      "review_status": "approved",
+      "reviewed_by": "security-reviewer",
+      "reviewed_at": "2026-06-14T01:00:00Z",
+      "review_note": "approved for fixture coverage"
+    }
+  ]
+}

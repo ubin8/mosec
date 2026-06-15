@@ -1,0 +1,25 @@
+{
+  "baselined_findings": [],
+  "files": [],
+  "findings": [],
+  "notes": [],
+  "parsed_documents": [],
+  "audit_log": [],
+  "policy_branch": null,
+  "policy_decision": null,
+  "policy_effective_threshold": null,
+  "policy_threshold": null,
+  "rule_packs": [],
+  "started_at": null,
+  "finished_at": null,
+  "root": "fixtures/secrets/python",
+  "tool_version": null,
+  "stats": {
+    "baselined_findings": 0,
+    "files_seen": 0,
+    "files_selected": 0,
+    "findings": 0,
+    "suppressed_findings": 0
+  },
+  "suppressed_findings": []
+}

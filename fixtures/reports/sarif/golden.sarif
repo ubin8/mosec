@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "mosec-cli",
+          "rules": [],
+          "version": "0.1.0"
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+            "properties": {
+              "baselined_findings": 0,
+              "files_selected": 0,
+              "files_seen": 0,
+              "findings": 0,
+              "finished_at": null,
+              "policy_branch": null,
+              "policy_decision": null,
+              "policy_effective_threshold": null,
+              "policy_threshold": null,
+              "audit_log": [],
+              "rule_packs": [],
+              "started_at": null,
+              "root": "fixtures/secrets/python",
+              "tool_version": null,
+              "suppressed_findings": 0
+            }
+          }
+      ],
+      "results": []
+    }
+  ]
+}

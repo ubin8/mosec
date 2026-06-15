@@ -1,0 +1,10 @@
+[package]
+name = "appsec-core"
+version = "0.1.0"
+edition = "2021"
+description = "Future Rust core for AppSec analysis"
+
+[lib]
+name = "appsec_core"
+path = "src/lib.rs"
+

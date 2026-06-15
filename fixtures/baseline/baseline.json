@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "entries": [
+    {
+      "rule_id": "SEC-SECRET-001",
+      "path": "fixtures/secrets/python/hardcoded_secret.py",
+      "start_line": 1,
+      "fingerprint": "secret-example-fingerprint",
+      "reason": "known test fixture"
+    }
+  ]
+}
+

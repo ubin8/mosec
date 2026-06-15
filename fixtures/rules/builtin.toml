@@ -1,0 +1,23 @@
+name = "builtin"
+version = "0.1.0"
+
+[[rules]]
+id = "SEC-SECRET-001"
+name = "Hardcoded Secret"
+description = "Detects obvious hardcoded secret material."
+category = "secrets"
+severity = "high"
+confidence = "medium"
+strategy = "pattern"
+owasp = ["A05:2021 - Security Misconfiguration"]
+cwe = ["CWE-798"]
+remediation = "Move secrets out of source control."
+examples = ["api_key = 'abc'"]
+
+[[rules.targets]]
+language = "python"
+
+[[rules.patterns]]
+kind = "regex"
+value = "(?i)(api[_-]?key|secret|token|password)\\s*[:=]"
+
