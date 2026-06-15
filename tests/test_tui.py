@@ -25,7 +25,8 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     output = capsys.readouterr().out
 
     assert exit_code == 0
-    assert prompts == ["> "]
+    assert prompts == [""]
     assert "▄█████▄" in output
+    assert "> " in output
     lines = output.splitlines()
     assert lines.count("─" * 96) >= 2

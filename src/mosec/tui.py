@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import locale
+import sys
 from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
+
+try:  # pragma: no cover - optional on non-Unix platforms
+    import curses
+except ImportError:  # pragma: no cover - fallback for environments without curses
+    curses = None
 
 BRAND_FALLBACK = (
     "███╗   ███╗ ██████╗ ███████╗███████╗ ██████╗\n"
@@ -21,6 +28,7 @@ MASCOT_FALLBACK = (
     "  █████████\n"
     "  ▀▀▀███▀▀▀"
 )
+
 
 def _load_text_asset(filename: str, fallback: str) -> str:
     try:
@@ -68,9 +76,9 @@ def _build_home_screen_lines(width: int | None = None, height: int | None = None
 
     centered_art = [f"{' ' * left_pad}{line}" for line in art_lines]
     prompt_dock_height = 3
-    gap_lines = max(6, height // 8)
-    block_height = len(centered_art) + gap_lines + prompt_dock_height
-    top_pad = max((height - block_height) // 2, 0)
+    available_space = max(height - len(centered_art) - prompt_dock_height, 0)
+    top_pad = min(max(height // 12, 2), available_space)
+    gap_lines = max(available_space - top_pad, 0)
 
     lines: list[str] = []
     lines.extend("" for _ in range(top_pad))
@@ -81,6 +89,92 @@ def _build_home_screen_lines(width: int | None = None, height: int | None = None
 
 def render_home_screen(width: int | None = None, height: int | None = None) -> str:
     return "\n".join(_build_home_screen_lines(width=width, height=height))
+
+
+def _write_prompt_dock(width: int) -> None:
+    separator = _separator(width)
+    sys.stdout.write(separator + "\n")
+    sys.stdout.write("> \n")
+    sys.stdout.write(separator + "\n")
+    sys.stdout.write("\033[2A\r\033[2C")
+    sys.stdout.flush()
+
+
+def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
+    value = ""
+    while True:
+        try:
+            ch = stdscr.get_wch()
+        except curses.error:  # pragma: no cover - defensive terminal guard
+            continue
+        if ch in {"\n", "\r", curses.KEY_ENTER}:
+            break
+        if ch in {curses.KEY_BACKSPACE, "\b", "\x7f"}:
+            value = value[:-1]
+        elif isinstance(ch, str) and ch.isprintable():
+            if len(value) < max_width:
+                value += ch
+        visible = value[:max_width]
+        stdscr.move(y, x)
+        stdscr.clrtoeol()
+        stdscr.addstr(y, x, visible)
+        stdscr.move(y, x + len(visible))
+        stdscr.refresh()
+    return value
+
+
+def _launch_home_screen_curses() -> int:
+    locale.setlocale(locale.LC_ALL, "")
+
+    def _draw(stdscr: "curses.window") -> int:
+        curses.curs_set(1)
+        stdscr.keypad(True)
+        stdscr.erase()
+        height, width = stdscr.getmaxyx()
+
+        lines = _build_home_screen_lines(width=width, height=height)
+        prompt_row = min(len(lines), max(height - 3, 0))
+        if prompt_row + 2 >= height:
+            prompt_row = max(height - 3, 0)
+
+        for row, line in enumerate(lines[:prompt_row]):
+            if row >= height:
+                break
+            try:
+                stdscr.addstr(row, 0, line[:width])
+            except curses.error:  # pragma: no cover - skip partial terminal writes
+                pass
+
+        separator = _separator(width)
+        try:
+            stdscr.addstr(prompt_row, 0, separator[:width])
+            stdscr.addstr(prompt_row + 1, 0, "> ")
+            stdscr.addstr(prompt_row + 2, 0, separator[:width])
+        except curses.error:  # pragma: no cover - skip partial terminal writes
+            pass
+        stdscr.move(prompt_row + 1, 2)
+        stdscr.refresh()
+
+        choice = _curses_read_line(stdscr, prompt_row + 1, 2, max(width - 2, 0)).strip().lower()
+        if choice in {"q", "quit", "exit", ""}:
+            return 0
+        if choice in {"h", "help", "?"}:
+            stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Shortcuts: s = scan current directory, q = quit, ? = help"[:width])
+            stdscr.refresh()
+            stdscr.get_wch()
+            return 0
+        if choice in {"s", "scan"}:
+            stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Run `mosec scan .` to scan the current directory."[:width])
+            stdscr.refresh()
+            stdscr.get_wch()
+            return 0
+
+        stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Unknown command. Type `?` for help."[:width])
+        stdscr.refresh()
+        stdscr.get_wch()
+        return 0
+
+    return curses.wrapper(_draw)
 
 
 def launch_home_screen(
@@ -95,15 +189,18 @@ def launch_home_screen(
     width = width or terminal_size.columns
     height = height or terminal_size.lines
     if interactive:
-        output_func("\033[2J\033[H")
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
+        if curses is not None and sys.stdin.isatty() and sys.stdout.isatty():
+            return _launch_home_screen_curses()
     output_func(render_home_screen(width=width, height=height))
     if not interactive:
         return 0
 
-    separator = _separator(width)
-    output_func(separator)
-    choice = input_func("> ").strip().lower()
-    output_func(separator)
+    _write_prompt_dock(width)
+    choice = input_func("").strip().lower()
+    sys.stdout.write("\n")
+    sys.stdout.flush()
 
     if choice in {"q", "quit", "exit", ""}:
         return 0
