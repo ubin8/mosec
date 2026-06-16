@@ -51,8 +51,10 @@ def test_launch_home_screen_quick_scan_prepares_state(capsys) -> None:
 
     assert exit_code == 0
     assert "Quick scan prepared." in output
+    assert "Scan progress" in output
     assert "Target: ." in output
     assert "Mode: quick" in output
+    assert "Status: preparing detectors" in output
     assert "Format: text" in output
     assert "Status [SUCCESS]: Quick scan prepared for ." in output
 

@@ -179,6 +179,15 @@ def _scan_summary_lines(mode: str, state: SessionState) -> tuple[str, ...]:
     )
 
 
+def _scan_progress_lines(mode: str, target: str) -> tuple[str, ...]:
+    return (
+        "Scan progress",
+        f"  Target: {target}",
+        f"  Mode: {mode}",
+        "  Status: preparing detectors",
+    )
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -220,6 +229,18 @@ def _prompt_confirmation(
     return _normalize_confirmation_answer(raw)
 
 
+def _prompt_workspace_target(
+    current_workspace: str,
+    *,
+    input_func: Callable[[str], str],
+) -> str | None:
+    raw = input_func(f"Workspace target [{current_workspace}]: ")
+    if _is_cancel_request(raw):
+        return None
+    value = raw.strip()
+    return value or current_workspace
+
+
 def _curses_prompt_confirmation(
     stdscr: "curses.window",
     *,
@@ -239,6 +260,28 @@ def _curses_prompt_confirmation(
     if _is_cancel_request(answer):
         return False
     return _normalize_confirmation_answer(answer)
+
+
+def _curses_prompt_workspace_target(
+    stdscr: "curses.window",
+    *,
+    row: int,
+    width: int,
+    current_workspace: str,
+) -> str | None:
+    prompt = f"Workspace target [{current_workspace}]: "
+    try:
+        stdscr.move(row, 0)
+        stdscr.clrtoeol()
+        stdscr.addstr(row, 0, prompt[:width])
+        stdscr.refresh()
+    except curses.error:  # pragma: no cover - defensive terminal guard
+        pass
+    answer = _curses_read_line(stdscr, row, min(len(prompt), max(width - 1, 0)), max(width - len(prompt) - 1, 0))
+    if _is_cancel_request(answer):
+        return None
+    value = answer.strip()
+    return value or current_workspace
 
 
 def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
@@ -332,6 +375,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             return 0
         state.remember_command(choice)
         outcome = registry.execute(choice)
+        lines_to_render: tuple[str, ...] = outcome.message_lines
 
         if outcome.kind == "help":
             state.set_status("Help opened.")
@@ -339,8 +383,6 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_status("Invalid command syntax.", kind="warning")
         elif outcome.kind == "unknown":
             state.set_status(f"Unknown command: {choice}", kind="warning")
-        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
-            state.set_status("Workspace overview displayed.")
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
             state.set_status("Recent commands shown.")
         elif outcome.kind == "scan" and outcome.command is not None:
@@ -348,6 +390,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             if outcome.command.name != "/scan":
                 state.record_scan(state.workspace, mode, state.output_format)
                 state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+                lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
             else:
                 state.set_status("Scan mode selected: guided")
         elif outcome.kind == "wizard":
@@ -380,9 +423,46 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             if outcome.confirmation.action == "exit":
                 state.set_status("Exiting MoSec.")
                 return 0
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
+            workspace = _curses_prompt_workspace_target(
+                stdscr,
+                row=min(prompt_row + 3, max(height - 1, 0)),
+                width=width,
+                current_workspace=state.workspace,
+            )
+            if workspace is None:
+                state.set_status("Workspace selection canceled.", kind="warning")
+                lines_to_render = ("Workspace selection canceled.",)
+                message_row = min(prompt_row + 4, max(height - 1, 0))
+                for offset, line in enumerate(lines_to_render):
+                    if message_row + offset >= height:
+                        break
+                    try:
+                        stdscr.addstr(message_row + offset, 0, line[:width])
+                    except curses.error:  # pragma: no cover - skip partial terminal writes
+                        pass
+                stdscr.refresh()
+                return 0
+            state.workspace = workspace
+            state.set_status(f"Workspace set to {state.workspace}", kind="success")
+            lines_to_render = (
+                "Workspace selected.",
+                f"Workspace: {state.workspace}",
+                f"Mode: {state.scan_mode}",
+                f"Format: {state.output_format}",
+            )
+            message_row = min(prompt_row + 4, max(height - 1, 0))
+            for offset, line in enumerate(lines_to_render):
+                if message_row + offset >= height:
+                    break
+                try:
+                    stdscr.addstr(message_row + offset, 0, line[:width])
+                except curses.error:  # pragma: no cover - skip partial terminal writes
+                    pass
+            stdscr.refresh()
+            return 0
 
         message_row = min(prompt_row + 4, max(height - 1, 0))
-        lines_to_render: tuple[str, ...] = outcome.message_lines
         if outcome.prompt_steps:
             answers = _curses_collect_prompt_answers(
                 stdscr,
@@ -413,7 +493,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                     f"Guided scan prepared for {state.workspace}",
                     kind="success",
                 )
-            lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+            lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
         elif outcome.command and outcome.command.name == "/workspace":
             lines_to_render = _session_state_lines(state)
         elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
@@ -421,7 +501,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.record_scan(state.workspace, mode, state.output_format)
             state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
             state.last_command = outcome.command.name
-            lines_to_render = outcome.message_lines + _scan_summary_lines(mode, state)
+            lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
 
         for offset, line in enumerate(lines_to_render):
             if message_row + offset >= height:
@@ -475,6 +555,7 @@ def launch_home_screen(
     outcome = registry.execute(choice)
     sys.stdout.write("\n")
     sys.stdout.flush()
+    lines_to_render: tuple[str, ...] = outcome.message_lines
 
     if outcome.kind == "help":
         state.set_status("Help opened.")
@@ -482,8 +563,6 @@ def launch_home_screen(
         state.set_status("Invalid command syntax.", kind="warning")
     elif outcome.kind == "unknown":
         state.set_status(f"Unknown command: {choice}", kind="warning")
-    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
-        state.set_status("Workspace overview displayed.")
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
         state.set_status("Recent commands shown.")
     elif outcome.kind == "scan" and outcome.command is not None:
@@ -491,6 +570,7 @@ def launch_home_screen(
         if outcome.command.name != "/scan":
             state.record_scan(state.workspace, mode, state.output_format)
             state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+            lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
         else:
             state.set_status("Scan mode selected: guided")
     elif outcome.kind == "wizard":
@@ -513,8 +593,22 @@ def launch_home_screen(
             _emit_status_lines(state, output_func)
             output_func("Exiting MoSec.")
             return 0
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
+        workspace = _prompt_workspace_target(state.workspace, input_func=input_func)
+        if workspace is None:
+            state.set_status("Workspace selection canceled.", kind="warning")
+            _emit_status_lines(state, output_func)
+            output_func("Workspace selection canceled.")
+            return 0
+        state.workspace = workspace
+        state.set_status(f"Workspace set to {state.workspace}", kind="success")
+        _emit_status_lines(state, output_func)
+        output_func("Workspace selected.")
+        output_func(f"Workspace: {state.workspace}")
+        output_func(f"Mode: {state.scan_mode}")
+        output_func(f"Format: {state.output_format}")
+        return 0
 
-    lines_to_render: tuple[str, ...] = outcome.message_lines
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
         answers = _collect_prompt_answers(prompt_steps, input_func=input_func)
@@ -530,14 +624,14 @@ def launch_home_screen(
                 output_format=answers.get("format", state.output_format),
             )
             state.set_status(f"Guided scan prepared for {state.workspace}", kind="success")
-        lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+        lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
     elif outcome.command and outcome.command.name == "/workspace":
         lines_to_render = _session_state_lines(state)
     elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
         mode = _scan_mode_from_command_name(outcome.command.name)
         state.record_scan(state.workspace, mode, state.output_format)
         state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
-        lines_to_render = outcome.message_lines + _scan_summary_lines(mode, state)
+        lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
     _emit_status_lines(state, output_func)
     for line in lines_to_render:
         output_func(line)
