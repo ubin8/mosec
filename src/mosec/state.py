@@ -33,6 +33,15 @@ class SessionState:
         self.last_scan_format = self.output_format
         self.set_status(f"Scan prepared for {self.workspace}", kind="success")
 
+    def repeat_last_scan(self) -> bool:
+        if self.last_scan_target is None:
+            return False
+        self.workspace = self.last_scan_target
+        self.scan_mode = self.last_scan_mode or self.scan_mode
+        self.output_format = self.last_scan_format or self.output_format
+        self.set_status(f"Repeated scan prepared for {self.workspace}", kind="success")
+        return True
+
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text
         self.status_kind = kind.strip().lower() or self.status_kind

@@ -59,6 +59,17 @@ def test_command_registry_requires_confirmation_for_exit_and_clear() -> None:
     assert clear_result.confirmation.action == "clear"
 
 
+def test_command_registry_includes_repeat_last_scan() -> None:
+    registry = build_default_command_registry()
+
+    repeat_command = registry.resolve("/repeat-last-scan")
+    repeat_result = registry.execute("/scan-repeat")
+
+    assert repeat_command is not None
+    assert repeat_command.name == "/scan-repeat"
+    assert repeat_result.kind == "scan"
+
+
 def test_command_history_tracks_recent_commands() -> None:
     history = CommandHistory(limit=3)
 

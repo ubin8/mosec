@@ -386,6 +386,24 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
             state.set_status("Recent commands shown.")
         elif outcome.kind == "scan" and outcome.command is not None:
+            if outcome.command.name == "/scan-repeat":
+                if not state.repeat_last_scan():
+                    state.set_status("No previous scan to repeat.", kind="warning")
+                    lines_to_render = ("No previous scan to repeat.",)
+                else:
+                    state.record_scan(state.workspace, state.scan_mode, state.output_format)
+                    lines_to_render = outcome.message_lines + _scan_progress_lines(state.scan_mode, state.workspace) + _scan_summary_lines(state.scan_mode, state)
+                state.last_command = outcome.command.name
+                message_row = min(prompt_row + 4, max(height - 1, 0))
+                for offset, line in enumerate(lines_to_render):
+                    if message_row + offset >= height:
+                        break
+                    try:
+                        stdscr.addstr(message_row + offset, 0, line[:width])
+                    except curses.error:  # pragma: no cover - skip partial terminal writes
+                        pass
+                stdscr.refresh()
+                return 0
             mode = _scan_mode_from_command_name(outcome.command.name)
             if outcome.command.name != "/scan":
                 state.record_scan(state.workspace, mode, state.output_format)
@@ -566,13 +584,23 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
         state.set_status("Recent commands shown.")
     elif outcome.kind == "scan" and outcome.command is not None:
-        mode = _scan_mode_from_command_name(outcome.command.name)
-        if outcome.command.name != "/scan":
-            state.record_scan(state.workspace, mode, state.output_format)
-            state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
-            lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
+        if outcome.command.name == "/scan-repeat":
+            if not state.repeat_last_scan():
+                state.set_status("No previous scan to repeat.", kind="warning")
+                _emit_status_lines(state, output_func)
+                output_func("No previous scan to repeat.")
+                return 0
+            state.record_scan(state.workspace, state.scan_mode, state.output_format)
+            state.last_command = outcome.command.name
+            lines_to_render = outcome.message_lines + _scan_progress_lines(state.scan_mode, state.workspace) + _scan_summary_lines(state.scan_mode, state)
         else:
-            state.set_status("Scan mode selected: guided")
+            mode = _scan_mode_from_command_name(outcome.command.name)
+            if outcome.command.name != "/scan":
+                state.record_scan(state.workspace, mode, state.output_format)
+                state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+                lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
+            else:
+                state.set_status("Scan mode selected: guided")
     elif outcome.kind == "wizard":
         state.set_status("Guided scan wizard started.")
     elif outcome.kind == "confirm" and outcome.confirmation is not None:

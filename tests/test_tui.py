@@ -149,6 +149,18 @@ def test_launch_home_screen_policy_scan_prepares_state(capsys) -> None:
     assert "Status [SUCCESS]: Policy scan prepared for ." in output
 
 
+def test_launch_home_screen_repeat_last_scan_reports_missing_history(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/scan-repeat"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "No previous scan to repeat." in output
+    assert "Status [WARNING]: No previous scan to repeat." in output
+
+
 def test_launch_home_screen_workspace_selection_updates_target(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/workspace", "./projects/mosec"])

@@ -291,6 +291,14 @@ def build_default_command_registry() -> CommandRegistry:
                 implemented=False,
             ),
             CommandSpec(
+                name="/scan-repeat",
+                aliases=("/repeat-last-scan",),
+                summary="Repeat the last scan",
+                description="Repeat the most recent scan settings for the current session.",
+                category="Scanning",
+                implemented=True,
+            ),
+            CommandSpec(
                 name="/findings",
                 aliases=("/results",),
                 summary="Open the findings workspace",

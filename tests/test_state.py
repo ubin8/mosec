@@ -37,3 +37,18 @@ def test_session_state_summary_lines_cover_last_scan() -> None:
     assert "Current mode: web" in lines
     assert "Output format: sarif" in lines
     assert "Last scan: none" in lines
+
+
+def test_session_state_can_repeat_last_scan() -> None:
+    state = SessionState()
+    state.record_scan(target="./fixtures", mode="web", output_format="json")
+    state.workspace = "./other"
+    state.scan_mode = "deep"
+    state.output_format = "text"
+
+    repeated = state.repeat_last_scan()
+
+    assert repeated is True
+    assert state.workspace == "./fixtures"
+    assert state.scan_mode == "web"
+    assert state.output_format == "json"
