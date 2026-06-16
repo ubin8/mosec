@@ -162,6 +162,23 @@ def _guided_scan_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...]:
     return state.scan_prompt_specs()
 
 
+def _scan_mode_from_command_name(command_name: str) -> str:
+    if command_name == "/scan":
+        return "guided"
+    if command_name.startswith("/scan-"):
+        return command_name.removeprefix("/scan-")
+    return "deep"
+
+
+def _scan_summary_lines(mode: str, state: SessionState) -> tuple[str, ...]:
+    return (
+        f"{mode.replace('-', ' ').title()} scan prepared.",
+        f"Target: {state.workspace}",
+        f"Mode: {state.scan_mode}",
+        f"Format: {state.output_format}",
+    )
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -327,7 +344,12 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
             state.set_status("Recent commands shown.")
         elif outcome.kind == "scan" and outcome.command is not None:
-            state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
+            mode = _scan_mode_from_command_name(outcome.command.name)
+            if outcome.command.name != "/scan":
+                state.record_scan(state.workspace, mode, state.output_format)
+                state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+            else:
+                state.set_status("Scan mode selected: guided")
         elif outcome.kind == "wizard":
             state.set_status("Guided scan wizard started.")
         elif outcome.kind == "confirm" and outcome.confirmation is not None:
@@ -395,9 +417,11 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.command and outcome.command.name == "/workspace":
             lines_to_render = _session_state_lines(state)
         elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
-            state.scan_mode = outcome.command.name.removeprefix("/scan-")
-            state.set_status(f"Scan mode selected: {state.scan_mode}")
+            mode = _scan_mode_from_command_name(outcome.command.name)
+            state.record_scan(state.workspace, mode, state.output_format)
+            state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
             state.last_command = outcome.command.name
+            lines_to_render = outcome.message_lines + _scan_summary_lines(mode, state)
 
         for offset, line in enumerate(lines_to_render):
             if message_row + offset >= height:
@@ -463,7 +487,12 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
         state.set_status("Recent commands shown.")
     elif outcome.kind == "scan" and outcome.command is not None:
-        state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
+        mode = _scan_mode_from_command_name(outcome.command.name)
+        if outcome.command.name != "/scan":
+            state.record_scan(state.workspace, mode, state.output_format)
+            state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+        else:
+            state.set_status("Scan mode selected: guided")
     elif outcome.kind == "wizard":
         state.set_status("Guided scan wizard started.")
     elif outcome.kind == "confirm" and outcome.confirmation is not None:
@@ -505,8 +534,10 @@ def launch_home_screen(
     elif outcome.command and outcome.command.name == "/workspace":
         lines_to_render = _session_state_lines(state)
     elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
-        state.scan_mode = outcome.command.name.removeprefix("/scan-")
-        state.set_status(f"Scan mode selected: {state.scan_mode}")
+        mode = _scan_mode_from_command_name(outcome.command.name)
+        state.record_scan(state.workspace, mode, state.output_format)
+        state.set_status(f"{mode.replace('-', ' ').title()} scan prepared for {state.workspace}", kind="success")
+        lines_to_render = outcome.message_lines + _scan_summary_lines(mode, state)
     _emit_status_lines(state, output_func)
     for line in lines_to_render:
         output_func(line)
