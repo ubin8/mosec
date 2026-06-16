@@ -1,4 +1,8 @@
-from mosec.tui import launch_home_screen, render_home_screen
+from pathlib import Path
+
+from mosec.findings import CodeLocation, Confidence, Finding, Severity
+from mosec.state import SessionState
+from mosec.tui import _finding_detail_lines, _findings_view_lines, launch_home_screen, render_home_screen
 
 
 def test_render_home_screen_contains_logo_and_navigation() -> None:
@@ -186,6 +190,52 @@ def test_launch_home_screen_findings_workspace_shows_empty_state(capsys) -> None
     assert "Status [INFO]: Findings workspace opened." in output
 
 
+def test_findings_view_groups_by_severity() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+            ),
+            Finding(
+                id="high-1",
+                rule_id="RULE-2",
+                title="High issue",
+                message="high",
+                severity=Severity.HIGH,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=2),
+                category="test",
+            ),
+            Finding(
+                id="low-1",
+                rule_id="RULE-3",
+                title="Low issue",
+                message="low",
+                severity=Severity.LOW,
+                confidence=Confidence.MEDIUM,
+                location=CodeLocation(path=Path("app.py"), start_line=3),
+                category="test",
+            ),
+        ]
+    )
+
+    lines = _findings_view_lines(state)
+
+    assert "Severity grouping" in lines
+    assert "Critical (1)" in lines
+    assert "High (1)" in lines
+    assert "Low (1)" in lines
+    assert any("Critical issue" in line for line in lines)
+
+
 def test_launch_home_screen_finding_detail_shows_empty_state(capsys) -> None:
     def fake_input(prompt: str) -> str:
         return "/finding-detail"
@@ -197,6 +247,33 @@ def test_launch_home_screen_finding_detail_shows_empty_state(capsys) -> None:
     assert "Finding detail view" in output
     assert "No finding selected." in output
     assert "Status [INFO]: Finding detail view opened." in output
+
+
+def test_finding_detail_view_shows_selected_finding() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+                remediation="Fix it",
+            )
+        ]
+    )
+
+    lines = _finding_detail_lines(state)
+
+    assert "Finding detail view" in lines[0]
+    assert "Selected: Critical issue" in lines
+    assert "Severity: critical" in lines
+    assert "Rule: RULE-1" in lines
+    assert any("Fix it" in line for line in lines)
 
 
 def test_launch_home_screen_workspace_selection_updates_target(capsys) -> None:

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
+
+if TYPE_CHECKING:
+    from .findings import Finding
 
 
 @dataclass
@@ -12,10 +16,16 @@ class SessionState:
     output_format: str = "text"
     status_text: str = "Ready"
     status_kind: str = "info"
+    findings: list["Finding"] = None  # type: ignore[assignment]
+    selected_finding_index: int = 0
     last_scan_target: str | None = None
     last_scan_mode: str | None = None
     last_scan_format: str | None = None
     last_command: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.findings is None:
+            self.findings = []
 
     def remember_command(self, command: str) -> None:
         normalized = normalize_command_text(command)
@@ -61,6 +71,19 @@ class SessionState:
             f"Format changed: {'yes' if format_changed else 'no'}",
         )
 
+    def store_findings(self, findings: list["Finding"]) -> None:
+        self.findings = list(findings)
+        self.selected_finding_index = 0
+        if self.findings:
+            self.set_status(f"Loaded {len(self.findings)} findings.", kind="success")
+
+    def selected_finding(self) -> "Finding | None":
+        if not self.findings:
+            return None
+        if self.selected_finding_index < 0 or self.selected_finding_index >= len(self.findings):
+            return self.findings[0]
+        return self.findings[self.selected_finding_index]
+
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text
         self.status_kind = kind.strip().lower() or self.status_kind
@@ -89,6 +112,7 @@ class SessionState:
             f"Workspace: {self.workspace}",
             f"Current mode: {self.scan_mode}",
             f"Output format: {self.output_format}",
+            f"Loaded findings: {len(self.findings)}",
         ]
         if self.last_scan_target is None:
             lines.append("Last scan: none")

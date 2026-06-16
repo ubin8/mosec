@@ -5,8 +5,10 @@ import sys
 from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
+from collections import defaultdict
 
 from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry, normalize_command_text
+from .findings import Finding, Severity
 from .state import SessionState
 
 try:  # pragma: no cover - optional on non-Unix platforms
@@ -192,24 +194,40 @@ def _compare_scan_lines(state: SessionState) -> tuple[str, ...] | None:
     return state.compare_current_to_last_scan()
 
 
+def _group_findings_by_severity(findings: list[Finding]) -> dict[Severity, list[Finding]]:
+    groups: dict[Severity, list[Finding]] = defaultdict(list)
+    for finding in findings:
+        groups[finding.severity].append(finding)
+    return groups
+
+
 def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
-    if state.last_scan_target is None:
+    if not state.findings:
         return (
             "Findings workspace",
             "No scan results available yet.",
             "Run /scan to collect a new session scan.",
         )
-    return (
+    grouped = _group_findings_by_severity(state.findings)
+    lines = [
         "Findings workspace",
-        f"Last scan target: {state.last_scan_target}",
-        f"Last scan mode: {state.last_scan_mode or state.scan_mode}",
-        f"Last scan format: {state.last_scan_format or state.output_format}",
-        "Findings list view will expand as scan persistence lands.",
-    )
+        "Severity grouping",
+    ]
+    for severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO):
+        bucket = grouped.get(severity, [])
+        lines.append(f"{severity.value.title()} ({len(bucket)})")
+        for finding in bucket[:5]:
+            lines.append(f"  - {finding.to_summary()}")
+        if len(bucket) > 5:
+            lines.append(f"  ... {len(bucket) - 5} more")
+    if state.last_scan_target is not None:
+        lines.append(f"Last scan target: {state.last_scan_target}")
+    return tuple(lines)
 
 
 def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
-    if state.last_scan_target is None:
+    selected = state.selected_finding()
+    if selected is None:
         return (
             "Finding detail view",
             "No finding selected.",
@@ -217,10 +235,16 @@ def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
         )
     return (
         "Finding detail view",
-        f"Selected target: {state.last_scan_target}",
-        f"Selected mode: {state.last_scan_mode or state.scan_mode}",
-        f"Selected format: {state.last_scan_format or state.output_format}",
-        "Detailed finding cards will appear once scan persistence is wired in.",
+        f"Selected: {selected.title}",
+        f"Severity: {selected.severity.value}",
+        f"Rule: {selected.rule_id}",
+        f"Location: {selected.location.path}:{selected.location.start_line}",
+        f"Message: {selected.message}",
+        f"Status: {selected.status.value}",
+        f"Triage: {selected.triage_status.value}",
+        f"Framework: {selected.framework or 'n/a'}",
+        f"Language: {selected.language or 'n/a'}",
+        f"Remediation: {selected.remediation or 'n/a'}",
     )
 
 

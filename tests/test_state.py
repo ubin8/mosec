@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from mosec.state import SessionState
+from mosec.findings import CodeLocation, Confidence, Finding, Severity
 
 
 def test_session_state_tracks_workspace_mode_and_last_scan() -> None:
@@ -68,3 +71,35 @@ def test_session_state_can_compare_current_to_last_scan() -> None:
     assert "Target changed: yes" in comparison
     assert "Mode changed: yes" in comparison
     assert "Format changed: yes" in comparison
+
+
+def test_session_state_can_store_and_select_findings() -> None:
+    state = SessionState()
+    findings = [
+        Finding(
+            id="one",
+            rule_id="RULE-1",
+            title="Critical issue",
+            message="critical",
+            severity=Severity.CRITICAL,
+            confidence=Confidence.HIGH,
+            location=CodeLocation(path=Path("app.py"), start_line=1),
+            category="test",
+        ),
+        Finding(
+            id="two",
+            rule_id="RULE-2",
+            title="Low issue",
+            message="low",
+            severity=Severity.LOW,
+            confidence=Confidence.MEDIUM,
+            location=CodeLocation(path=Path("app.py"), start_line=2),
+            category="test",
+        ),
+    ]
+
+    state.store_findings(findings)
+
+    assert len(state.findings) == 2
+    assert state.selected_finding() is not None
+    assert state.selected_finding().title == "Critical issue"
