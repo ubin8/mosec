@@ -246,7 +246,16 @@ class CommandRegistry:
                 kind="workspace",
                 message_lines=("Reset the selected finding to untriaged.",),
             )
-        if command.name in {"/findings", "/finding-detail", "/reports", "/rules", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
+        if command.name == "/rules":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=(
+                    "Rules browser opened.",
+                    "Browse builtin rule packs and inspect detector coverage.",
+                ),
+            )
+        if command.name in {"/findings", "/finding-detail", "/reports", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
                 kind="workspace",
@@ -487,7 +496,7 @@ def build_default_command_registry() -> CommandRegistry:
                 summary="Open the rules browser",
                 description="Inspect builtin and custom rule packs.",
                 category="Analysis",
-                implemented=False,
+                implemented=True,
             ),
             CommandSpec(
                 name="/policy",

@@ -631,9 +631,12 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_current_view("suppression-review")
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+            state.set_current_view("rules")
+            state.set_status("Rules browser opened.", kind="success")
+            lines_to_render = tuple(render_current_view_text(state).splitlines())
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/reports",
-            "/rules",
             "/policy",
             "/mobile",
             "/settings",
@@ -916,13 +919,16 @@ def launch_home_screen(
         state.set_current_view("suppression-review")
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+        state.set_current_view("rules")
+        state.set_status("Rules browser opened.", kind="success")
+        lines_to_render = tuple(render_current_view_text(state).splitlines())
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-clear-filters":
         _apply_findings_workspace_change(state, outcome.command.name)
         state.set_current_view("findings")
         lines_to_render = outcome.message_lines + _findings_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/reports",
-        "/rules",
         "/policy",
         "/mobile",
         "/settings",
@@ -1015,9 +1021,12 @@ def launch_home_screen(
         state.set_current_view("suppression-review")
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+        state.set_current_view("rules")
+        state.set_status("Rules browser opened.", kind="success")
+        lines_to_render = tuple(render_current_view_text(state).splitlines())
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/reports",
-        "/rules",
         "/policy",
         "/mobile",
         "/settings",

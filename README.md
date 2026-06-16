@@ -11,6 +11,7 @@ The terminal UI is the main product surface. The CLI remains available for autom
 - Understands multiple languages and frameworks
 - Produces text, JSON, and SARIF reports
 - Exports the current terminal view with dedicated reporting commands
+- Browses the built-in rule catalog from the terminal
 - Supports baseline files, suppressions, manual overrides, and policy gates
 - Includes Android-focused checks for manifests and insecure storage patterns
 
@@ -23,7 +24,7 @@ mosec version
 mosec scan .
 ```
 
-The interactive shell is designed around exact slash commands such as `/help`, `/scan`, and `/scan-quick`.
+The interactive shell is designed around exact slash commands such as `/help`, `/scan`, `/scan-quick`, and `/rules`.
 
 ## Documentation
 

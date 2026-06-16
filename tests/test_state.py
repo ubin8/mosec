@@ -39,7 +39,23 @@ def test_session_state_summary_lines_cover_last_scan() -> None:
     assert "Workspace: ~/src" in lines
     assert "Current mode: web" in lines
     assert "Output format: sarif" in lines
+    assert "Loaded rule packs: 1" in lines
     assert "Last scan: none" in lines
+
+
+def test_session_state_exposes_builtin_rule_browser() -> None:
+    state = SessionState()
+
+    assert len(state.rule_packs) == 1
+    assert state.selected_rule_pack() is not None
+    assert state.selected_rule_pack().name == "builtin-detectors"
+    assert state.current_view_rules() == []
+
+    state.set_current_view("rules")
+
+    assert len(state.current_view_rules()) >= 10
+    assert state.current_view_selected_rule() is not None
+    assert state.current_view_selected_rule().id == "SEC-SECRET-001"
 
 
 def test_session_state_can_repeat_last_scan() -> None:

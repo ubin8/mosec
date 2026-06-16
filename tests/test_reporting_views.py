@@ -79,3 +79,22 @@ def test_render_current_view_text_mentions_selection(tmp_path: Path) -> None:
     assert "view: suppression-review" in text
     assert "title: Suppression review" in text
     assert "selected: HIGH suppressed-1" in text
+
+
+def test_render_current_view_rules_exports_rule_browser() -> None:
+    state = SessionState()
+    state.set_current_view("rules")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "rules"
+    assert payload["view"]["title"] == "Rules"
+    assert payload["current_view"]["rules"]
+    assert payload["current_view"]["selected_rule"]["id"] == "SEC-SECRET-001"
+    assert payload["rule_browser"]["pack_count"] == 1
+    assert "Rules browser" in text
+    assert "Selected pack: builtin-detectors@0.1.0" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rules"
+    assert sarif["runs"][0]["tool"]["driver"]["rules"]

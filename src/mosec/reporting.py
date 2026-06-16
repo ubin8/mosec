@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from .models import ScanResult
+from .rule_browser import rule_browser_lines, rule_browser_payload, rule_browser_sarif
 from .state import SessionState
 
 
@@ -106,6 +107,21 @@ def render_sarif(result: ScanResult) -> str:
 
 
 def render_current_view_text(state: SessionState) -> str:
+    if state.current_view in {"rules", "rule-detail"}:
+        lines = [
+            f"view: {state.current_view}",
+            f"title: {state.current_view_title()}",
+            f"workspace: {state.workspace}",
+            f"mode: {state.scan_mode}",
+            f"format: {state.output_format}",
+        ]
+        selected = state.current_view_selected_rule()
+        if selected is not None:
+            lines.append(f"selected: {selected.id} - {selected.name}")
+        lines.extend(state.summary_lines())
+        lines.extend(rule_browser_lines(state.rule_packs, selected_pack_index=state.selected_rule_pack_index, selected_rule_index=state.selected_rule_index))
+        return "\n".join(lines)
+
     lines = [
         f"view: {state.current_view}",
         f"title: {state.current_view_title()}",
@@ -135,7 +151,10 @@ def render_current_view_text(state: SessionState) -> str:
 
 
 def render_current_view_json(state: SessionState) -> str:
-    selected = state.current_view_selected_finding()
+    selected_finding = state.current_view_selected_finding()
+    selected_rule = state.current_view_selected_rule()
+    current_view_findings = state.current_view_findings()
+    current_view_rules = state.current_view_rules()
     payload = {
         "view": {
             "id": state.current_view,
@@ -157,15 +176,34 @@ def render_current_view_json(state: SessionState) -> str:
             "severity": list(state.findings_severity_filters),
         },
         "current_view": {
-            "count": len(state.current_view_findings()),
-            "selected_finding": None if selected is None else selected.to_dict(),
-            "findings": [finding.to_dict() for finding in state.current_view_findings()],
+            "count": len(current_view_findings) if current_view_findings else len(current_view_rules),
+            "selected_finding": None if selected_finding is None else selected_finding.to_dict(),
+            "findings": [finding.to_dict() for finding in current_view_findings],
+            "rules": [rule.to_dict() for rule in current_view_rules],
+            "selected_rule": None if selected_rule is None else selected_rule.to_dict(),
         },
     }
+    if state.current_view in {"rules", "rule-detail"}:
+        payload["rule_browser"] = rule_browser_payload(
+            state.rule_packs,
+            selected_pack_index=state.selected_rule_pack_index,
+            selected_rule_index=state.selected_rule_index,
+        )
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
 def render_current_view_sarif(state: SessionState) -> str:
+    if state.current_view in {"rules", "rule-detail"}:
+        return json.dumps(
+            rule_browser_sarif(
+                state.rule_packs,
+                selected_pack_index=state.selected_rule_pack_index,
+                selected_rule_index=state.selected_rule_index,
+            ),
+            indent=2,
+            sort_keys=True,
+        )
+
     findings = state.current_view_findings()
     selected = state.current_view_selected_finding()
     rules_by_id: dict[str, dict[str, object]] = {}

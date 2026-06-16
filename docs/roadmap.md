@@ -60,7 +60,7 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 
 ### Phase 4: Rules and Policy
 
-- [ ] Rules browser
+- [x] Rules browser
 - [ ] Rule pack selection
 - [ ] Rule detail view
 - [ ] Policy threshold editor

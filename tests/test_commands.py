@@ -92,6 +92,19 @@ def test_command_registry_includes_finding_detail_view() -> None:
     assert detail_result.kind == "workspace"
 
 
+def test_command_registry_includes_rules_browser() -> None:
+    registry = build_default_command_registry()
+
+    rules_command = registry.resolve("/rulebook")
+    rules_result = registry.execute("/rules")
+
+    assert rules_command is not None
+    assert rules_command.name == "/rules"
+    assert rules_command.implemented is True
+    assert rules_result.kind == "workspace"
+    assert "Rules browser opened." in rules_result.message_lines[0]
+
+
 def test_command_registry_includes_findings_search_and_filters() -> None:
     registry = build_default_command_registry()
 

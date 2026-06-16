@@ -5,9 +5,12 @@ from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
 from .findings import TriageStatus
+from .rule_browser import build_builtin_rule_packs
+from .rules import RulePack
 
 if TYPE_CHECKING:
     from .findings import Finding
+    from .rules import Rule
 
 
 @dataclass
@@ -21,6 +24,9 @@ class SessionState:
     findings: list["Finding"] = None  # type: ignore[assignment]
     baseline_findings: list["Finding"] = field(default_factory=list)
     suppressed_findings: list["Finding"] = field(default_factory=list)
+    rule_packs: list[RulePack] = field(default_factory=build_builtin_rule_packs)
+    selected_rule_pack_index: int = 0
+    selected_rule_index: int = 0
     selected_finding_index: int = 0
     selected_suppressed_finding_index: int = 0
     findings_search_query: str | None = None
@@ -33,6 +39,12 @@ class SessionState:
     def __post_init__(self) -> None:
         if self.findings is None:
             self.findings = []
+        if not self.rule_packs:
+            self.rule_packs = build_builtin_rule_packs()
+        if self.selected_rule_pack_index < 0 or self.selected_rule_pack_index >= len(self.rule_packs):
+            self.selected_rule_pack_index = 0
+        if self.selected_rule_index < 0:
+            self.selected_rule_index = 0
 
     def remember_command(self, command: str) -> None:
         normalized = normalize_command_text(command)
@@ -169,6 +181,21 @@ class SessionState:
             return self.suppressed_findings[0]
         return self.suppressed_findings[self.selected_suppressed_finding_index]
 
+    def selected_rule_pack(self) -> RulePack | None:
+        if not self.rule_packs:
+            return None
+        if self.selected_rule_pack_index < 0 or self.selected_rule_pack_index >= len(self.rule_packs):
+            return self.rule_packs[0]
+        return self.rule_packs[self.selected_rule_pack_index]
+
+    def selected_rule(self) -> "Rule | None":
+        pack = self.selected_rule_pack()
+        if pack is None or not pack.rules:
+            return None
+        if self.selected_rule_index < 0 or self.selected_rule_index >= len(pack.rules):
+            return pack.rules[0]
+        return pack.rules[self.selected_rule_index]
+
     def set_current_view(self, view: str) -> None:
         normalized = view.strip().lower()
         if normalized:
@@ -182,15 +209,27 @@ class SessionState:
             "findings-baselined": "Baselined findings",
             "suppression-review": "Suppression review",
             "finding-detail": "Finding detail",
+            "rules": "Rules",
+            "rule-detail": "Rule detail",
             "workspace": "Workspace",
             "history": "History",
             "reports": "Reports",
-            "rules": "Rules",
             "policy": "Policy",
             "mobile": "Mobile",
             "settings": "Settings",
         }
         return titles.get(self.current_view, self.current_view.replace("-", " ").title())
+
+    def current_view_rules(self) -> list["Rule"]:
+        if self.current_view not in {"rules", "rule-detail"}:
+            return []
+        pack = self.selected_rule_pack()
+        return [] if pack is None else list(pack.rules)
+
+    def current_view_selected_rule(self) -> "Rule | None":
+        if self.current_view not in {"rules", "rule-detail"}:
+            return None
+        return self.selected_rule()
 
     def current_view_findings(self) -> list["Finding"]:
         if self.current_view == "findings-baselined":
@@ -271,9 +310,19 @@ class SessionState:
             f"Loaded findings: {len(self.findings)}",
             f"Baselined findings: {len(self.baseline_findings)}",
             f"Suppressed findings: {len(self.suppressed_findings)}",
+            f"Loaded rule packs: {len(self.rule_packs)}",
+            f"Loaded rules: {sum(len(pack.rules) for pack in self.rule_packs)}",
             f"Findings search: {self.findings_search_query or 'none'}",
             f"Findings severity filters: {', '.join(self.findings_severity_filters) if self.findings_severity_filters else 'none'}",
         ]
+        selected_rule_pack = self.selected_rule_pack()
+        if selected_rule_pack is None:
+            lines.append("Selected rule pack: none")
+        else:
+            lines.append(f"Selected rule pack: {selected_rule_pack.name}@{selected_rule_pack.version}")
+        selected_rule = self.selected_rule()
+        if selected_rule is not None:
+            lines.append(f"Selected rule: {selected_rule.id} - {selected_rule.name}")
         if self.last_scan_target is None:
             lines.append("Last scan: none")
         else:

@@ -377,6 +377,21 @@ def test_launch_home_screen_suppression_review_workspace_shows_empty_state(capsy
     assert "Status [INFO]: Suppression review workspace opened." in output
 
 
+def test_launch_home_screen_rules_browser_shows_builtin_catalog(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/rules"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Rules browser" in output
+    assert "Selected pack: builtin-detectors@0.1.0" in output
+    assert "WEB-SQLI-001" in output
+    assert "Categories" in output
+    assert "Status [SUCCESS]: Rules browser opened." in output
+
+
 def test_launch_home_screen_export_current_view_renders_export(capsys) -> None:
     def fake_input(prompt: str) -> str:
         return "/export-json"
