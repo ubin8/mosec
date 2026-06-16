@@ -188,6 +188,10 @@ def _scan_progress_lines(mode: str, target: str) -> tuple[str, ...]:
     )
 
 
+def _compare_scan_lines(state: SessionState) -> tuple[str, ...] | None:
+    return state.compare_current_to_last_scan()
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -386,6 +390,25 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
             state.set_status("Recent commands shown.")
         elif outcome.kind == "scan" and outcome.command is not None:
+            if outcome.command.name == "/scan-compare":
+                comparison_lines = _compare_scan_lines(state)
+                if comparison_lines is None:
+                    state.set_status("No previous scan to compare.", kind="warning")
+                    lines_to_render = ("No previous scan to compare.",)
+                else:
+                    state.set_status("Scan comparison prepared.", kind="success")
+                    lines_to_render = outcome.message_lines + comparison_lines
+                state.last_command = outcome.command.name
+                message_row = min(prompt_row + 4, max(height - 1, 0))
+                for offset, line in enumerate(lines_to_render):
+                    if message_row + offset >= height:
+                        break
+                    try:
+                        stdscr.addstr(message_row + offset, 0, line[:width])
+                    except curses.error:  # pragma: no cover - skip partial terminal writes
+                        pass
+                stdscr.refresh()
+                return 0
             if outcome.command.name == "/scan-repeat":
                 if not state.repeat_last_scan():
                     state.set_status("No previous scan to repeat.", kind="warning")
@@ -584,7 +607,17 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
         state.set_status("Recent commands shown.")
     elif outcome.kind == "scan" and outcome.command is not None:
-        if outcome.command.name == "/scan-repeat":
+        if outcome.command.name == "/scan-compare":
+            comparison_lines = _compare_scan_lines(state)
+            if comparison_lines is None:
+                state.set_status("No previous scan to compare.", kind="warning")
+                _emit_status_lines(state, output_func)
+                output_func("No previous scan to compare.")
+                return 0
+            state.set_status("Scan comparison prepared.", kind="success")
+            state.last_command = outcome.command.name
+            lines_to_render = outcome.message_lines + comparison_lines
+        elif outcome.command.name == "/scan-repeat":
             if not state.repeat_last_scan():
                 state.set_status("No previous scan to repeat.", kind="warning")
                 _emit_status_lines(state, output_func)

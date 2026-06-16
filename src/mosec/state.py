@@ -42,6 +42,25 @@ class SessionState:
         self.set_status(f"Repeated scan prepared for {self.workspace}", kind="success")
         return True
 
+    def compare_current_to_last_scan(self) -> tuple[str, ...] | None:
+        if self.last_scan_target is None:
+            return None
+        target_changed = self.workspace != self.last_scan_target
+        mode_changed = self.scan_mode != (self.last_scan_mode or self.scan_mode)
+        format_changed = self.output_format != (self.last_scan_format or self.output_format)
+        return (
+            "Scan comparison",
+            f"Current target: {self.workspace}",
+            f"Last target: {self.last_scan_target}",
+            f"Target changed: {'yes' if target_changed else 'no'}",
+            f"Current mode: {self.scan_mode}",
+            f"Last mode: {self.last_scan_mode or self.scan_mode}",
+            f"Mode changed: {'yes' if mode_changed else 'no'}",
+            f"Current format: {self.output_format}",
+            f"Last format: {self.last_scan_format or self.output_format}",
+            f"Format changed: {'yes' if format_changed else 'no'}",
+        )
+
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text
         self.status_kind = kind.strip().lower() or self.status_kind

@@ -299,6 +299,14 @@ def build_default_command_registry() -> CommandRegistry:
                 implemented=True,
             ),
             CommandSpec(
+                name="/scan-compare",
+                aliases=("/compare-last-scan",),
+                summary="Compare with the last scan",
+                description="Compare the current scan context against the last stored scan.",
+                category="Scanning",
+                implemented=True,
+            ),
+            CommandSpec(
                 name="/findings",
                 aliases=("/results",),
                 summary="Open the findings workspace",

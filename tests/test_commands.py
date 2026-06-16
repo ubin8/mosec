@@ -70,6 +70,17 @@ def test_command_registry_includes_repeat_last_scan() -> None:
     assert repeat_result.kind == "scan"
 
 
+def test_command_registry_includes_scan_compare() -> None:
+    registry = build_default_command_registry()
+
+    compare_command = registry.resolve("/compare-last-scan")
+    compare_result = registry.execute("/scan-compare")
+
+    assert compare_command is not None
+    assert compare_command.name == "/scan-compare"
+    assert compare_result.kind == "scan"
+
+
 def test_command_history_tracks_recent_commands() -> None:
     history = CommandHistory(limit=3)
 

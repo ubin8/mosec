@@ -52,3 +52,19 @@ def test_session_state_can_repeat_last_scan() -> None:
     assert state.workspace == "./fixtures"
     assert state.scan_mode == "web"
     assert state.output_format == "json"
+
+
+def test_session_state_can_compare_current_to_last_scan() -> None:
+    state = SessionState()
+    state.record_scan(target="./fixtures", mode="web", output_format="json")
+    state.workspace = "./other"
+    state.scan_mode = "deep"
+    state.output_format = "sarif"
+
+    comparison = state.compare_current_to_last_scan()
+
+    assert comparison is not None
+    assert "Scan comparison" in comparison[0]
+    assert "Target changed: yes" in comparison
+    assert "Mode changed: yes" in comparison
+    assert "Format changed: yes" in comparison
