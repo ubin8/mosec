@@ -631,7 +631,6 @@ def _looks_like_orm_query(line: str, taint_state: TaintState | None = None, line
     lowered = line.lower()
     sink_patterns = (
         ".raw(",
-        ".execute(",
         ".executemany(",
         ".from_statement(",
         "session.execute(",
@@ -657,7 +656,6 @@ def _looks_like_orm_query(line: str, taint_state: TaintState | None = None, line
         "req.query",
         "req.body",
         "user_input",
-        "query",
         "sql",
     )
     return _line_has_any(lowered, sink_patterns) and not _has_parameterized_query_sanitizer(line) and (

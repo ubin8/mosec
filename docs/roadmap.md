@@ -54,7 +54,7 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - [x] Severity grouping
 - [x] Search and filters
 - [x] Baseline-aware views
-- [ ] Suppression review from the UI
+- [x] Suppression review from the UI
 - [ ] Triage actions from the UI
 - [ ] Export current view to JSON or SARIF
 

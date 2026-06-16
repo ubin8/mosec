@@ -20,6 +20,7 @@ class SessionState:
     baseline_findings: list["Finding"] = field(default_factory=list)
     suppressed_findings: list["Finding"] = field(default_factory=list)
     selected_finding_index: int = 0
+    selected_suppressed_finding_index: int = 0
     findings_search_query: str | None = None
     findings_severity_filters: list[str] = field(default_factory=list)
     last_scan_target: str | None = None
@@ -93,6 +94,7 @@ class SessionState:
             self.baseline_findings = list(baseline_findings)
         if suppressed_findings is not None:
             self.suppressed_findings = list(suppressed_findings)
+            self.selected_suppressed_finding_index = 0
 
     def set_findings_search_query(self, query: str | None) -> None:
         value = query.strip() if query is not None else ""
@@ -153,6 +155,16 @@ class SessionState:
 
     def selected_baseline_finding(self) -> "Finding | None":
         return self.selected_finding_from(self.baseline_findings)
+
+    def selected_suppressed_finding(self) -> "Finding | None":
+        if not self.suppressed_findings:
+            return None
+        if (
+            self.selected_suppressed_finding_index < 0
+            or self.selected_suppressed_finding_index >= len(self.suppressed_findings)
+        ):
+            return self.suppressed_findings[0]
+        return self.suppressed_findings[self.selected_suppressed_finding_index]
 
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text

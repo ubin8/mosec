@@ -7,6 +7,7 @@ from mosec.tui import (
     _baseline_findings_view_lines,
     _finding_detail_lines,
     _findings_view_lines,
+    _suppression_review_view_lines,
     launch_home_screen,
     render_home_screen,
 )
@@ -360,6 +361,46 @@ def test_launch_home_screen_finding_baselined_view_uses_baseline_section(capsys)
     assert exit_code == 0
     assert "Baselined findings workspace" in output
     assert "No baselined findings available yet." in output
+
+
+def test_launch_home_screen_suppression_review_workspace_shows_empty_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/suppression-review"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Suppression review workspace" in output
+    assert "No suppressed findings available yet." in output
+    assert "Status [INFO]: Suppression review workspace opened." in output
+
+
+def test_suppression_review_view_lists_suppressed_findings() -> None:
+    state = SessionState()
+    state.store_scan_results(
+        [],
+        suppressed_findings=[
+            Finding(
+                id="suppressed-1",
+                rule_id="RULE-SUPPRESSED",
+                title="Suppressed issue",
+                message="suppressed",
+                severity=Severity.HIGH,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("legacy.py"), start_line=8),
+                category="test",
+                metadata={"suppression_reason": "legacy exception"},
+            )
+        ],
+    )
+
+    lines = _suppression_review_view_lines(state)
+
+    assert "Suppression review workspace" in lines[0]
+    assert "Suppressed findings: 1" in lines
+    assert any("Suppressed issue" in line for line in lines)
+    assert any("source=suppression" in line for line in lines)
 
 
 def test_findings_view_applies_search_and_severity_filters() -> None:

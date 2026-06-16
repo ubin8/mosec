@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from mosec.state import SessionState
-from mosec.findings import CodeLocation, Confidence, Finding, Severity
+from mosec.findings import CodeLocation, Confidence, Finding, FindingStatus, Severity
 
 
 def test_session_state_tracks_workspace_mode_and_last_scan() -> None:
@@ -127,6 +127,32 @@ def test_session_state_can_store_baseline_findings() -> None:
     assert state.selected_baseline_finding() is not None
     assert state.selected_baseline_finding().title == "Baselined issue"
     assert "Baselined findings: 1" in state.summary_lines()
+
+
+def test_session_state_can_store_suppressed_findings() -> None:
+    state = SessionState()
+    suppressed_findings = [
+        Finding(
+            id="suppressed-1",
+            rule_id="RULE-SUPPRESSED",
+            title="Suppressed issue",
+            message="suppressed",
+            severity=Severity.HIGH,
+            confidence=Confidence.HIGH,
+            location=CodeLocation(path=Path("legacy.py"), start_line=8),
+            category="test",
+            status=FindingStatus.SUPPRESSED,
+            metadata={"suppression_reason": "legacy exception"},
+        )
+    ]
+
+    state.store_scan_results([], suppressed_findings=suppressed_findings)
+
+    assert state.findings == []
+    assert len(state.suppressed_findings) == 1
+    assert state.selected_suppressed_finding() is not None
+    assert state.selected_suppressed_finding().title == "Suppressed issue"
+    assert "Suppressed findings: 1" in state.summary_lines()
 
 
 def test_session_state_filters_findings_by_query_and_severity() -> None:

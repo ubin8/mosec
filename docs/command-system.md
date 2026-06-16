@@ -133,6 +133,7 @@ The registry should store:
 
 - `/findings`
 - `/findings-baselined`
+- `/suppression-review`
 - `/findings-search`
 - `/findings-filter-severity`
 - `/findings-clear-filters`

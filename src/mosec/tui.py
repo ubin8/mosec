@@ -273,6 +273,54 @@ def _baseline_findings_view_lines(state: SessionState) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def _suppression_review_line(finding: Finding) -> str:
+    metadata = finding.metadata
+    reason = (
+        metadata.get("suppression_reason")
+        or metadata.get("manual_override_reason")
+        or metadata.get("baseline_reason")
+        or "n/a"
+    )
+    if metadata.get("suppression_reason") is not None:
+        source = "suppression"
+    elif metadata.get("manual_override_reason") is not None:
+        source = "manual override"
+    elif metadata.get("baseline_reason") is not None:
+        source = "baseline"
+    else:
+        source = "unknown"
+    return (
+        f"{finding.severity.value.title()} {finding.title} "
+        f"({finding.rule_id}) at {finding.location.path}:{finding.location.start_line} "
+        f"| source={source} | reason={reason} | status={finding.status.value}"
+    )
+
+
+def _suppression_review_view_lines(state: SessionState) -> tuple[str, ...]:
+    if not state.suppressed_findings:
+        return (
+            "Suppression review workspace",
+            "No suppressed findings available yet.",
+            "Run a scan with suppressions or manual overrides to populate this view.",
+        )
+    lines = [
+        "Suppression review workspace",
+        f"Suppressed findings: {len(state.suppressed_findings)}",
+        f"Selected suppressed finding: {state.selected_suppressed_finding().title if state.selected_suppressed_finding() is not None else 'none'}",
+    ]
+    grouped = _group_findings_by_severity(state.suppressed_findings)
+    for severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO):
+        bucket = grouped.get(severity, [])
+        lines.append(f"{severity.value.title()} ({len(bucket)})")
+        for finding in bucket[:5]:
+            lines.append(f"  - {_suppression_review_line(finding)}")
+        if len(bucket) > 5:
+            lines.append(f"  ... {len(bucket) - 5} more")
+    if state.last_scan_target is not None:
+        lines.append(f"Last scan target: {state.last_scan_target}")
+    return tuple(lines)
+
+
 def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
     selected = state.selected_finding()
     if selected is None:
@@ -527,6 +575,9 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
             state.set_status("Baselined findings workspace opened.")
             lines_to_render = _baseline_findings_view_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
+            state.set_status("Suppression review workspace opened.")
+            lines_to_render = _suppression_review_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/findings-search",
             "/findings-filter-severity",
@@ -838,6 +889,9 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
         state.set_status("Baselined findings workspace opened.")
         lines_to_render = _baseline_findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
+        state.set_status("Suppression review workspace opened.")
+        lines_to_render = _suppression_review_view_lines(state)
 
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps

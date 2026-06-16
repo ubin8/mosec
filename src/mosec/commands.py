@@ -188,6 +188,12 @@ class CommandRegistry:
                 kind="workspace",
                 message_lines=("Open baselined findings.",),
             )
+        if command.name == "/suppression-review":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Open suppression review.",),
+            )
         if command.name == "/findings-filter-severity":
             return CommandOutcome(
                 command=command,
@@ -360,6 +366,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/baseline-findings", "/results-baselined"),
                 summary="Show baselined findings",
                 description="Open the view that lists findings filtered out by baselines.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/suppression-review",
+                aliases=("/suppressed-findings", "/results-suppressed"),
+                summary="Review suppressed findings",
+                description="Inspect findings filtered out by suppressions and manual overrides.",
                 category="Analysis",
                 implemented=True,
             ),

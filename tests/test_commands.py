@@ -97,10 +97,12 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
 
     search_command = registry.resolve("/results-search")
     baseline_command = registry.resolve("/baseline-findings")
+    suppression_command = registry.resolve("/suppressed-findings")
     severity_command = registry.resolve("/results-filter-severity")
     clear_command = registry.resolve("/results-clear-filters")
     search_result = registry.execute("/findings-search")
     baseline_result = registry.execute("/findings-baselined")
+    suppression_result = registry.execute("/suppression-review")
     severity_result = registry.execute("/findings-filter-severity")
     clear_result = registry.execute("/findings-clear-filters")
 
@@ -108,6 +110,8 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     assert search_command.name == "/findings-search"
     assert baseline_command is not None
     assert baseline_command.name == "/findings-baselined"
+    assert suppression_command is not None
+    assert suppression_command.name == "/suppression-review"
     assert severity_command is not None
     assert severity_command.name == "/findings-filter-severity"
     assert clear_command is not None
@@ -116,6 +120,8 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     assert search_result.prompt_steps[0].key == "query"
     assert baseline_result.kind == "workspace"
     assert "Open baselined findings." in baseline_result.message_lines[0]
+    assert suppression_result.kind == "workspace"
+    assert "Open suppression review." in suppression_result.message_lines[0]
     assert severity_result.kind == "workspace"
     assert severity_result.prompt_steps[0].key == "severity"
     assert clear_result.kind == "workspace"
