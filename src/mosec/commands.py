@@ -175,7 +175,7 @@ class CommandRegistry:
                     "Guided scan workflows will be enabled in the next roadmap chunk.",
                 ),
             )
-        if command.name in {"/findings", "/reports", "/rules", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
+        if command.name in {"/findings", "/finding-detail", "/reports", "/rules", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
                 kind="workspace",
@@ -311,6 +311,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/results",),
                 summary="Open the findings workspace",
                 description="Inspect the latest or saved scan findings.",
+                category="Analysis",
+                implemented=False,
+            ),
+            CommandSpec(
+                name="/finding-detail",
+                aliases=("/finding",),
+                summary="Open the finding detail view",
+                description="Inspect the currently selected finding in detail.",
                 category="Analysis",
                 implemented=False,
             ),

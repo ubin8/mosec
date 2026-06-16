@@ -208,6 +208,22 @@ def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
     )
 
 
+def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
+    if state.last_scan_target is None:
+        return (
+            "Finding detail view",
+            "No finding selected.",
+            "Run /scan to populate the current session context.",
+        )
+    return (
+        "Finding detail view",
+        f"Selected target: {state.last_scan_target}",
+        f"Selected mode: {state.last_scan_mode or state.scan_mode}",
+        f"Selected format: {state.last_scan_format or state.output_format}",
+        "Detailed finding cards will appear once scan persistence is wired in.",
+    )
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -408,6 +424,9 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
             state.set_status("Findings workspace opened.")
             lines_to_render = _findings_view_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
+            state.set_status("Finding detail view opened.")
+            lines_to_render = _finding_detail_lines(state)
         elif outcome.kind == "scan" and outcome.command is not None:
             if outcome.command.name == "/scan-compare":
                 comparison_lines = _compare_scan_lines(state)
@@ -628,6 +647,9 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
         state.set_status("Findings workspace opened.")
         lines_to_render = _findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
+        state.set_status("Finding detail view opened.")
+        lines_to_render = _finding_detail_lines(state)
     elif outcome.kind == "scan" and outcome.command is not None:
         if outcome.command.name == "/scan-compare":
             comparison_lines = _compare_scan_lines(state)

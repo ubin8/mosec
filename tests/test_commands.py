@@ -81,6 +81,17 @@ def test_command_registry_includes_scan_compare() -> None:
     assert compare_result.kind == "scan"
 
 
+def test_command_registry_includes_finding_detail_view() -> None:
+    registry = build_default_command_registry()
+
+    detail_command = registry.resolve("/finding")
+    detail_result = registry.execute("/finding-detail")
+
+    assert detail_command is not None
+    assert detail_command.name == "/finding-detail"
+    assert detail_result.kind == "workspace"
+
+
 def test_command_history_tracks_recent_commands() -> None:
     history = CommandHistory(limit=3)
 
