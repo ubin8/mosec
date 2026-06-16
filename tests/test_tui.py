@@ -117,6 +117,21 @@ def test_launch_home_screen_secrets_scan_prepares_state(capsys) -> None:
     assert "Status [SUCCESS]: Secrets scan prepared for ." in output
 
 
+def test_launch_home_screen_dependency_scan_prepares_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/scan-sca"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Sca scan prepared." in output
+    assert "Target: ." in output
+    assert "Mode: sca" in output
+    assert "Format: text" in output
+    assert "Status [SUCCESS]: Sca scan prepared for ." in output
+
+
 def test_launch_home_screen_allows_scan_cancellation(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/scan", "/cancel"])
