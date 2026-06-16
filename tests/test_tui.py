@@ -4,6 +4,7 @@ from mosec.findings import CodeLocation, Confidence, Finding, Severity
 from mosec.state import SessionState
 from mosec.tui import (
     _apply_findings_workspace_change,
+    _baseline_findings_view_lines,
     _finding_detail_lines,
     _findings_view_lines,
     launch_home_screen,
@@ -196,6 +197,19 @@ def test_launch_home_screen_findings_workspace_shows_empty_state(capsys) -> None
     assert "Status [INFO]: Findings workspace opened." in output
 
 
+def test_launch_home_screen_baselined_findings_workspace_shows_empty_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/findings-baselined"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Baselined findings workspace" in output
+    assert "No baselined findings available yet." in output
+    assert "Status [INFO]: Baselined findings workspace opened." in output
+
+
 def test_launch_home_screen_findings_search_updates_workspace_state(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/findings-search", "issue"])
@@ -265,13 +279,87 @@ def test_findings_view_groups_by_severity() -> None:
 
     lines = _findings_view_lines(state)
 
-    assert "Severity grouping" in lines
+    assert "Active findings" in lines
     assert "Search query: none" in lines
     assert "Severity filters: all" in lines
     assert "Critical (1)" in lines
     assert "High (1)" in lines
     assert "Low (1)" in lines
     assert any("Critical issue" in line for line in lines)
+
+
+def test_findings_view_includes_baselined_section() -> None:
+    state = SessionState()
+    state.store_scan_results(
+        [
+            Finding(
+                id="active-1",
+                rule_id="RULE-ACTIVE",
+                title="Active issue",
+                message="active",
+                severity=Severity.HIGH,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+            )
+        ],
+        baseline_findings=[
+            Finding(
+                id="baseline-1",
+                rule_id="RULE-BASELINE",
+                title="Baselined issue",
+                message="baseline",
+                severity=Severity.MEDIUM,
+                confidence=Confidence.MEDIUM,
+                location=CodeLocation(path=Path("legacy.py"), start_line=4),
+                category="test",
+            )
+        ],
+    )
+
+    lines = _findings_view_lines(state)
+
+    assert "Active findings" in lines
+    assert "Baselined findings" in lines
+    assert "Baselined findings: 1" in state.summary_lines()
+    assert any("Baselined issue" in line for line in lines)
+
+
+def test_baselined_findings_view_lists_baselined_findings() -> None:
+    state = SessionState()
+    state.store_scan_results(
+        [],
+        baseline_findings=[
+            Finding(
+                id="baseline-1",
+                rule_id="RULE-BASELINE",
+                title="Baselined issue",
+                message="baseline",
+                severity=Severity.MEDIUM,
+                confidence=Confidence.MEDIUM,
+                location=CodeLocation(path=Path("legacy.py"), start_line=4),
+                category="test",
+            )
+        ],
+    )
+
+    lines = _baseline_findings_view_lines(state)
+
+    assert "Baselined findings workspace" in lines[0]
+    assert "Baselined findings" in lines
+    assert any("Baselined issue" in line for line in lines)
+
+
+def test_launch_home_screen_finding_baselined_view_uses_baseline_section(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/findings-baselined"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Baselined findings workspace" in output
+    assert "No baselined findings available yet." in output
 
 
 def test_findings_view_applies_search_and_severity_filters() -> None:

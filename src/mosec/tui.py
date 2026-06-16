@@ -201,8 +201,29 @@ def _group_findings_by_severity(findings: list[Finding]) -> dict[Severity, list[
     return groups
 
 
+def _render_grouped_findings_section(
+    title: str,
+    findings: list[Finding],
+    *,
+    empty_message: str,
+) -> list[str]:
+    lines = [title]
+    if not findings:
+        lines.append(empty_message)
+        return lines
+    grouped = _group_findings_by_severity(findings)
+    for severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO):
+        bucket = grouped.get(severity, [])
+        lines.append(f"{severity.value.title()} ({len(bucket)})")
+        for finding in bucket[:5]:
+            lines.append(f"  - {finding.to_summary()}")
+        if len(bucket) > 5:
+            lines.append(f"  ... {len(bucket) - 5} more")
+    return lines
+
+
 def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
-    if not state.findings:
+    if not state.findings and not state.baseline_findings:
         return (
             "Findings workspace",
             "No scan results available yet.",
@@ -211,22 +232,42 @@ def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
     filtered = state.filtered_findings()
     lines = [
         "Findings workspace",
-        "Severity grouping",
+        *_render_grouped_findings_section(
+            "Active findings",
+            filtered,
+            empty_message="No active findings in the current session.",
+        ),
         *state.findings_filter_summary(),
     ]
-    if not filtered:
-        lines.append("No findings match the current filters.")
-        if state.last_scan_target is not None:
-            lines.append(f"Last scan target: {state.last_scan_target}")
-        return tuple(lines)
-    grouped = _group_findings_by_severity(filtered)
-    for severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO):
-        bucket = grouped.get(severity, [])
-        lines.append(f"{severity.value.title()} ({len(bucket)})")
-        for finding in bucket[:5]:
-            lines.append(f"  - {finding.to_summary()}")
-        if len(bucket) > 5:
-            lines.append(f"  ... {len(bucket) - 5} more")
+    if state.baseline_findings:
+        lines.append("")
+        lines.extend(
+            _render_grouped_findings_section(
+                "Baselined findings",
+                state.baseline_findings,
+                empty_message="No findings have been baselined in this session.",
+            )
+        )
+    if state.last_scan_target is not None:
+        lines.append(f"Last scan target: {state.last_scan_target}")
+    return tuple(lines)
+
+
+def _baseline_findings_view_lines(state: SessionState) -> tuple[str, ...]:
+    if not state.baseline_findings:
+        return (
+            "Baselined findings workspace",
+            "No baselined findings available yet.",
+            "Run a scan with a matching baseline file to populate this view.",
+        )
+    lines = [
+        "Baselined findings workspace",
+        *_render_grouped_findings_section(
+            "Baselined findings",
+            state.baseline_findings,
+            empty_message="No findings have been baselined in this session.",
+        ),
+    ]
     if state.last_scan_target is not None:
         lines.append(f"Last scan target: {state.last_scan_target}")
     return tuple(lines)
@@ -483,6 +524,9 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
             state.set_status("Finding detail view opened.")
             lines_to_render = _finding_detail_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
+            state.set_status("Baselined findings workspace opened.")
+            lines_to_render = _baseline_findings_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/findings-search",
             "/findings-filter-severity",
@@ -791,6 +835,9 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
         state.set_status("Findings workspace opened.")
         lines_to_render = _findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
+        state.set_status("Baselined findings workspace opened.")
+        lines_to_render = _baseline_findings_view_lines(state)
 
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps

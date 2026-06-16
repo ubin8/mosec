@@ -105,6 +105,30 @@ def test_session_state_can_store_and_select_findings() -> None:
     assert state.selected_finding().title == "Critical issue"
 
 
+def test_session_state_can_store_baseline_findings() -> None:
+    state = SessionState()
+    baseline_findings = [
+        Finding(
+            id="baseline-1",
+            rule_id="RULE-BASELINE",
+            title="Baselined issue",
+            message="baseline",
+            severity=Severity.MEDIUM,
+            confidence=Confidence.MEDIUM,
+            location=CodeLocation(path=Path("legacy.py"), start_line=4),
+            category="test",
+        )
+    ]
+
+    state.store_scan_results([], baseline_findings=baseline_findings)
+
+    assert state.findings == []
+    assert len(state.baseline_findings) == 1
+    assert state.selected_baseline_finding() is not None
+    assert state.selected_baseline_finding().title == "Baselined issue"
+    assert "Baselined findings: 1" in state.summary_lines()
+
+
 def test_session_state_filters_findings_by_query_and_severity() -> None:
     state = SessionState()
     findings = [

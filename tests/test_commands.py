@@ -96,20 +96,26 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     registry = build_default_command_registry()
 
     search_command = registry.resolve("/results-search")
+    baseline_command = registry.resolve("/baseline-findings")
     severity_command = registry.resolve("/results-filter-severity")
     clear_command = registry.resolve("/results-clear-filters")
     search_result = registry.execute("/findings-search")
+    baseline_result = registry.execute("/findings-baselined")
     severity_result = registry.execute("/findings-filter-severity")
     clear_result = registry.execute("/findings-clear-filters")
 
     assert search_command is not None
     assert search_command.name == "/findings-search"
+    assert baseline_command is not None
+    assert baseline_command.name == "/findings-baselined"
     assert severity_command is not None
     assert severity_command.name == "/findings-filter-severity"
     assert clear_command is not None
     assert clear_command.name == "/findings-clear-filters"
     assert search_result.kind == "workspace"
     assert search_result.prompt_steps[0].key == "query"
+    assert baseline_result.kind == "workspace"
+    assert "Open baselined findings." in baseline_result.message_lines[0]
     assert severity_result.kind == "workspace"
     assert severity_result.prompt_steps[0].key == "severity"
     assert clear_result.kind == "workspace"

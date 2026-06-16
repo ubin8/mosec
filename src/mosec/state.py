@@ -17,6 +17,8 @@ class SessionState:
     status_text: str = "Ready"
     status_kind: str = "info"
     findings: list["Finding"] = None  # type: ignore[assignment]
+    baseline_findings: list["Finding"] = field(default_factory=list)
+    suppressed_findings: list["Finding"] = field(default_factory=list)
     selected_finding_index: int = 0
     findings_search_query: str | None = None
     findings_severity_filters: list[str] = field(default_factory=list)
@@ -79,6 +81,19 @@ class SessionState:
         if self.findings:
             self.set_status(f"Loaded {len(self.findings)} findings.", kind="success")
 
+    def store_scan_results(
+        self,
+        findings: list["Finding"],
+        *,
+        baseline_findings: list["Finding"] | None = None,
+        suppressed_findings: list["Finding"] | None = None,
+    ) -> None:
+        self.store_findings(findings)
+        if baseline_findings is not None:
+            self.baseline_findings = list(baseline_findings)
+        if suppressed_findings is not None:
+            self.suppressed_findings = list(suppressed_findings)
+
     def set_findings_search_query(self, query: str | None) -> None:
         value = query.strip() if query is not None else ""
         self.findings_search_query = value or None
@@ -136,6 +151,9 @@ class SessionState:
             return findings[0]
         return findings[self.selected_finding_index]
 
+    def selected_baseline_finding(self) -> "Finding | None":
+        return self.selected_finding_from(self.baseline_findings)
+
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text
         self.status_kind = kind.strip().lower() or self.status_kind
@@ -165,6 +183,8 @@ class SessionState:
             f"Current mode: {self.scan_mode}",
             f"Output format: {self.output_format}",
             f"Loaded findings: {len(self.findings)}",
+            f"Baselined findings: {len(self.baseline_findings)}",
+            f"Suppressed findings: {len(self.suppressed_findings)}",
             f"Findings search: {self.findings_search_query or 'none'}",
             f"Findings severity filters: {', '.join(self.findings_severity_filters) if self.findings_severity_filters else 'none'}",
         ]

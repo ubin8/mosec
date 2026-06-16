@@ -182,6 +182,12 @@ class CommandRegistry:
                 message_lines=("Search findings.",),
                 prompt_steps=(PromptSpec(key="query", question="Search query"),),
             )
+        if command.name == "/findings-baselined":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Open baselined findings.",),
+            )
         if command.name == "/findings-filter-severity":
             return CommandOutcome(
                 command=command,
@@ -346,6 +352,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/results-search",),
                 summary="Search findings",
                 description="Filter the findings workspace by a search query.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/findings-baselined",
+                aliases=("/baseline-findings", "/results-baselined"),
+                summary="Show baselined findings",
+                description="Open the view that lists findings filtered out by baselines.",
                 category="Analysis",
                 implemented=True,
             ),

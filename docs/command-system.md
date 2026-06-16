@@ -132,6 +132,7 @@ The registry should store:
 ### Analysis
 
 - `/findings`
+- `/findings-baselined`
 - `/findings-search`
 - `/findings-filter-severity`
 - `/findings-clear-filters`
