@@ -6,7 +6,7 @@ from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
 
-from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry
+from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry, normalize_command_text
 from .state import SessionState
 
 try:  # pragma: no cover - optional on non-Unix platforms
@@ -138,6 +138,16 @@ def _normalize_prompt_answer(spec: PromptSpec, raw: str) -> str:
     return value
 
 
+def _is_cancel_request(raw: str) -> bool:
+    normalized = normalize_command_text(raw)
+    return normalized in {"/back", "/cancel"}
+
+
+def _normalize_confirmation_answer(raw: str) -> bool:
+    normalized = raw.strip().lower()
+    return normalized in {"y", "yes"}
+
+
 def _guided_scan_summary(answers: dict[str, str]) -> tuple[str, ...]:
     return (
         "Guided scan configured.",
@@ -156,10 +166,13 @@ def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
     input_func: Callable[[str], str],
-) -> dict[str, str]:
+) -> dict[str, str] | None:
     answers: dict[str, str] = {}
     for spec in prompt_steps:
-        answers[spec.key] = _normalize_prompt_answer(spec, input_func(_format_prompt(spec)))
+        raw = input_func(_format_prompt(spec))
+        if _is_cancel_request(raw):
+            return None
+        answers[spec.key] = _normalize_prompt_answer(spec, raw)
     return answers
 
 
@@ -177,6 +190,38 @@ def _status_lines(state: SessionState) -> tuple[str, ...]:
 def _emit_status_lines(state: SessionState, output_func: Callable[[str], None]) -> None:
     for line in _status_lines(state):
         output_func(line)
+
+
+def _prompt_confirmation(
+    question: str,
+    *,
+    input_func: Callable[[str], str],
+) -> bool:
+    raw = input_func(f"{question} [y/N]: ")
+    if _is_cancel_request(raw):
+        return False
+    return _normalize_confirmation_answer(raw)
+
+
+def _curses_prompt_confirmation(
+    stdscr: "curses.window",
+    *,
+    row: int,
+    width: int,
+    question: str,
+) -> bool:
+    prompt = f"{question} [y/N]: "
+    try:
+        stdscr.move(row, 0)
+        stdscr.clrtoeol()
+        stdscr.addstr(row, 0, prompt[:width])
+        stdscr.refresh()
+    except curses.error:  # pragma: no cover - defensive terminal guard
+        pass
+    answer = _curses_read_line(stdscr, row, min(len(prompt), max(width - 1, 0)), max(width - len(prompt) - 1, 0))
+    if _is_cancel_request(answer):
+        return False
+    return _normalize_confirmation_answer(answer)
 
 
 def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
@@ -271,16 +316,8 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         state.remember_command(choice)
         outcome = registry.execute(choice)
 
-        if outcome.clear_screen:
-            stdscr.erase()
-            stdscr.refresh()
-            return 0
         if outcome.kind == "help":
             state.set_status("Help opened.")
-        elif outcome.kind == "exit":
-            state.set_status("Exiting MoSec.")
-        elif outcome.kind == "clear":
-            state.set_status("Screen cleared.")
         elif outcome.kind == "invalid":
             state.set_status("Invalid command syntax.", kind="warning")
         elif outcome.kind == "unknown":
@@ -293,6 +330,34 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
         elif outcome.kind == "wizard":
             state.set_status("Guided scan wizard started.")
+        elif outcome.kind == "confirm" and outcome.confirmation is not None:
+            confirmed = _curses_prompt_confirmation(
+                stdscr,
+                row=min(prompt_row + 3, max(height - 1, 0)),
+                width=width,
+                question=outcome.confirmation.question,
+            )
+            if not confirmed:
+                state.set_status("Action canceled.", kind="warning")
+                lines_to_render = ("Action canceled.",)
+                message_row = min(prompt_row + 4, max(height - 1, 0))
+                for offset, line in enumerate(lines_to_render):
+                    if message_row + offset >= height:
+                        break
+                    try:
+                        stdscr.addstr(message_row + offset, 0, line[:width])
+                    except curses.error:  # pragma: no cover - skip partial terminal writes
+                        pass
+                stdscr.refresh()
+                return 0
+            if outcome.confirmation.action == "clear":
+                stdscr.erase()
+                stdscr.refresh()
+                state.set_status("Screen cleared.")
+                return 0
+            if outcome.confirmation.action == "exit":
+                state.set_status("Exiting MoSec.")
+                return 0
 
         message_row = min(prompt_row + 4, max(height - 1, 0))
         lines_to_render: tuple[str, ...] = outcome.message_lines
@@ -304,6 +369,18 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                 width=width,
                 height=height,
             )
+            if answers is None:
+                state.set_status("Guided scan canceled.", kind="warning")
+                lines_to_render = ("Guided scan canceled.",)
+                for offset, line in enumerate(lines_to_render):
+                    if message_row + offset >= height:
+                        break
+                    try:
+                        stdscr.addstr(message_row + offset, 0, line[:width])
+                    except curses.error:  # pragma: no cover - skip partial terminal writes
+                        pass
+                stdscr.refresh()
+                return 0
             if outcome.command and outcome.command.name == "/scan":
                 state.record_scan(
                     target=answers.get("target", state.workspace),
@@ -375,15 +452,8 @@ def launch_home_screen(
     sys.stdout.write("\n")
     sys.stdout.flush()
 
-    if outcome.clear_screen:
-        output_func("\033[2J\033[H")
-        state.set_status("Screen cleared.")
-    elif outcome.kind == "help":
+    if outcome.kind == "help":
         state.set_status("Help opened.")
-    elif outcome.kind == "exit":
-        state.set_status("Exiting MoSec.")
-    elif outcome.kind == "clear":
-        state.set_status("Screen cleared.")
     elif outcome.kind == "invalid":
         state.set_status("Invalid command syntax.", kind="warning")
     elif outcome.kind == "unknown":
@@ -396,11 +466,34 @@ def launch_home_screen(
         state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
     elif outcome.kind == "wizard":
         state.set_status("Guided scan wizard started.")
+    elif outcome.kind == "confirm" and outcome.confirmation is not None:
+        confirmed = _prompt_confirmation(outcome.confirmation.question, input_func=input_func)
+        if not confirmed:
+            state.set_status("Action canceled.", kind="warning")
+            _emit_status_lines(state, output_func)
+            output_func("Action canceled.")
+            return 0
+        if outcome.confirmation.action == "clear":
+            output_func("\033[2J\033[H")
+            state.set_status("Screen cleared.")
+            _emit_status_lines(state, output_func)
+            output_func("Screen cleared.")
+            return 0
+        if outcome.confirmation.action == "exit":
+            state.set_status("Exiting MoSec.")
+            _emit_status_lines(state, output_func)
+            output_func("Exiting MoSec.")
+            return 0
 
     lines_to_render: tuple[str, ...] = outcome.message_lines
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
         answers = _collect_prompt_answers(prompt_steps, input_func=input_func)
+        if answers is None:
+            state.set_status("Guided scan canceled.", kind="warning")
+            _emit_status_lines(state, output_func)
+            output_func("Guided scan canceled.")
+            return 0
         if outcome.command and outcome.command.name == "/scan":
             state.record_scan(
                 target=answers.get("target", state.workspace),

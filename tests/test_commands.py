@@ -43,6 +43,22 @@ def test_command_registry_execute_help_and_unknown() -> None:
     assert scan_result.prompt_steps[1].choices == ("quick", "deep", "web", "mobile", "secrets", "sca", "policy")
 
 
+def test_command_registry_requires_confirmation_for_exit_and_clear() -> None:
+    registry = build_default_command_registry()
+
+    exit_result = registry.execute("/exit")
+    clear_result = registry.execute("/clear")
+
+    assert exit_result.kind == "confirm"
+    assert exit_result.confirmation is not None
+    assert exit_result.confirmation.question == "Exit MoSec"
+    assert exit_result.confirmation.action == "exit"
+    assert clear_result.kind == "confirm"
+    assert clear_result.confirmation is not None
+    assert clear_result.confirmation.question == "Clear the terminal surface"
+    assert clear_result.confirmation.action == "clear"
+
+
 def test_command_history_tracks_recent_commands() -> None:
     history = CommandHistory(limit=3)
 

@@ -29,8 +29,16 @@ class CommandOutcome:
     kind: str
     message_lines: tuple[str, ...] = ()
     prompt_steps: tuple[PromptSpec, ...] = ()
+    confirmation: "ConfirmationSpec | None" = None
     should_exit: bool = False
     clear_screen: bool = False
+
+
+@dataclass(frozen=True)
+class ConfirmationSpec:
+    question: str
+    action: str
+    destructive: bool = False
 
 
 def normalize_command_text(text: str) -> str | None:
@@ -119,9 +127,19 @@ class CommandRegistry:
         if command.name == "/help":
             return CommandOutcome(command=command, kind="help", message_lines=self.help_lines())
         if command.name == "/exit":
-            return CommandOutcome(command=command, kind="exit", message_lines=("Exiting MoSec.",), should_exit=True)
+            return CommandOutcome(
+                command=command,
+                kind="confirm",
+                message_lines=("Confirmation required before exiting MoSec.",),
+                confirmation=ConfirmationSpec(question="Exit MoSec", action="exit", destructive=True),
+            )
         if command.name == "/clear":
-            return CommandOutcome(command=command, kind="clear", clear_screen=True)
+            return CommandOutcome(
+                command=command,
+                kind="confirm",
+                message_lines=("Confirmation required before clearing the terminal.",),
+                confirmation=ConfirmationSpec(question="Clear the terminal surface", action="clear", destructive=True),
+            )
 
         if command.name == "/scan":
             return CommandOutcome(

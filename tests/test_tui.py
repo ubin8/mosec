@@ -42,6 +42,41 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     assert lines.count("─" * 96) >= 2
 
 
+def test_launch_home_screen_allows_scan_cancellation(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/scan", "/cancel"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert any(prompt.startswith("Target path") for prompt in prompts[1:])
+    assert "Guided scan canceled." in output
+    assert "Status [WARNING]: Guided scan canceled." in output
+
+
+def test_launch_home_screen_requires_confirmation_for_exit(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/exit", "n"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert prompts[0] == ""
+    assert "Exit MoSec [y/N]:" in prompts[1]
+    assert "Action canceled." in output
+    assert "Status [WARNING]: Action canceled." in output
+
+
 def test_launch_home_screen_workspace_command_shows_session_state(capsys) -> None:
     def fake_input(prompt: str) -> str:
         return "/workspace"
