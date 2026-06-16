@@ -72,6 +72,21 @@ def test_launch_home_screen_deep_scan_prepares_state(capsys) -> None:
     assert "Status [SUCCESS]: Deep scan prepared for ." in output
 
 
+def test_launch_home_screen_web_scan_prepares_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/scan-web"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Web scan prepared." in output
+    assert "Target: ." in output
+    assert "Mode: web" in output
+    assert "Format: text" in output
+    assert "Status [SUCCESS]: Web scan prepared for ." in output
+
+
 def test_launch_home_screen_allows_scan_cancellation(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/scan", "/cancel"])
