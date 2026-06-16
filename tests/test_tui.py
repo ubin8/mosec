@@ -19,7 +19,7 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
 
     def fake_input(prompt: str) -> str:
         prompts.append(prompt)
-        return "q"
+        return "/help"
 
     exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
     output = capsys.readouterr().out
@@ -28,5 +28,7 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     assert prompts == [""]
     assert "▄█████▄" in output
     assert "> " in output
+    assert "MoSec commands" in output
+    assert "/scan-quick" in output
     lines = output.splitlines()
     assert lines.count("─" * 96) >= 2

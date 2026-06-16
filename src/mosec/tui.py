@@ -6,6 +6,8 @@ from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
 
+from .commands import build_default_command_registry
+
 try:  # pragma: no cover - optional on non-Unix platforms
     import curses
 except ImportError:  # pragma: no cover - fallback for environments without curses
@@ -123,7 +125,7 @@ def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -
     return value
 
 
-def _launch_home_screen_curses() -> int:
+def _launch_home_screen_curses(registry) -> int:
     locale.setlocale(locale.LC_ALL, "")
 
     def _draw(stdscr: "curses.window") -> int:
@@ -153,23 +155,25 @@ def _launch_home_screen_curses() -> int:
         stdscr.move(prompt_row + 1, 2)
         stdscr.refresh()
 
-        choice = _curses_read_line(stdscr, prompt_row + 1, 2, max(width - 2, 0)).strip().lower()
-        if choice in {"q", "quit", "exit", ""}:
+        choice = _curses_read_line(stdscr, prompt_row + 1, 2, max(width - 2, 0))
+        if not choice.strip():
             return 0
-        if choice in {"h", "help", "?"}:
-            stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Shortcuts: s = scan current directory, q = quit, ? = help"[:width])
+        outcome = registry.execute(choice)
+
+        if outcome.clear_screen:
+            stdscr.erase()
             stdscr.refresh()
-            stdscr.get_wch()
-            return 0
-        if choice in {"s", "scan"}:
-            stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Run `mosec scan .` to scan the current directory."[:width])
-            stdscr.refresh()
-            stdscr.get_wch()
             return 0
 
-        stdscr.addstr(min(prompt_row + 4, height - 1), 0, "Unknown command. Type `?` for help."[:width])
+        message_row = min(prompt_row + 4, max(height - 1, 0))
+        for offset, line in enumerate(outcome.message_lines):
+            if message_row + offset >= height:
+                break
+            try:
+                stdscr.addstr(message_row + offset, 0, line[:width])
+            except curses.error:  # pragma: no cover - skip partial terminal writes
+                pass
         stdscr.refresh()
-        stdscr.get_wch()
         return 0
 
     return curses.wrapper(_draw)
@@ -183,6 +187,7 @@ def launch_home_screen(
     output_func: Callable[[str], None] = print,
     interactive: bool = False,
 ) -> int:
+    registry = build_default_command_registry()
     terminal_size = get_terminal_size((120, 36))
     width = width or terminal_size.columns
     height = height or terminal_size.lines
@@ -190,24 +195,23 @@ def launch_home_screen(
         sys.stdout.write("\033[2J\033[H")
         sys.stdout.flush()
         if curses is not None and sys.stdin.isatty() and sys.stdout.isatty():
-            return _launch_home_screen_curses()
+            return _launch_home_screen_curses(registry)
     output_func(render_home_screen(width=width, height=height))
     if not interactive:
         return 0
 
     _write_prompt_dock(width)
-    choice = input_func("").strip().lower()
+    choice = input_func("").strip()
+    if not choice:
+        return 0
+    outcome = registry.execute(choice)
     sys.stdout.write("\n")
     sys.stdout.flush()
 
-    if choice in {"q", "quit", "exit", ""}:
+    if outcome.clear_screen:
+        output_func("\033[2J\033[H")
+    for line in outcome.message_lines:
+        output_func(line)
+    if outcome.should_exit:
         return 0
-    if choice in {"h", "help", "?"}:
-        output_func("Shortcuts: s = scan current directory, q = quit, ? = help")
-        return 0
-    if choice in {"s", "scan"}:
-        output_func("Run `mosec scan .` to scan the current directory.")
-        return 0
-
-    output_func("Unknown command. Type `?` for help.")
     return 0

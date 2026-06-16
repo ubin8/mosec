@@ -23,11 +23,11 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 
 ### Phase 1: TUI Shell Contract
 
-- [ ] Define the exact slash-command grammar
-- [ ] Implement a command registry with aliases
+- [x] Define the exact slash-command grammar
+- [x] Implement a command registry with aliases
 - [ ] Implement guided prompts for commands that need context
 - [ ] Add command history and recall
-- [ ] Add help and command discovery
+- [x] Add help and command discovery
 - [ ] Add a session state model for workspace, mode, and last scan
 - [ ] Add a consistent notification/status area
 - [ ] Add a cancellation and confirmation flow
@@ -105,4 +105,3 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - Interactive workflows do not require shell-style free text.
 - Automation still works through the CLI.
 - Scan results can be reviewed, filtered, and exported from the terminal.
-
