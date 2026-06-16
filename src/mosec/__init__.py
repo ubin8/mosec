@@ -11,7 +11,7 @@ from .findings import (
     TriageStatus,
 )
 from .audit import AuditEntry
-from .commands import CommandOutcome, CommandRegistry, CommandSpec, build_default_command_registry, normalize_command_text
+from .commands import CommandOutcome, CommandRegistry, CommandSpec, PromptSpec, build_default_command_registry, normalize_command_text
 from .ir import IRAssignment, IRCall, IRDocument, IRLiteral, IRLocation, IRMemberAccess
 from .rules import MatchStrategy, Rule, RuleCategory, RulePack, RulePattern, RuleTarget
 from .taint import TaintLineage, TaintState, assignment_propagation_metadata, build_assignment_taint_state, is_string_escape_sanitized_expression, is_url_allowlist_guard_expression, line_uses_tainted_assignment, line_uses_tainted_flow, taint_propagation_metadata

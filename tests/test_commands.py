@@ -31,8 +31,13 @@ def test_command_registry_execute_help_and_unknown() -> None:
 
     help_result = registry.execute("/help")
     unknown_result = registry.execute("/scan quick")
+    scan_result = registry.execute("/scan")
 
     assert help_result.kind == "help"
     assert "MoSec commands" in help_result.message_lines[0]
     assert unknown_result.kind == "invalid"
     assert "Commands must be exact slash commands." in unknown_result.message_lines[0]
+    assert scan_result.kind == "wizard"
+    assert len(scan_result.prompt_steps) == 3
+    assert scan_result.prompt_steps[0].key == "target"
+    assert scan_result.prompt_steps[1].choices == ("quick", "deep", "web", "mobile", "secrets", "sca", "policy")

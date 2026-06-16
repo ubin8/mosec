@@ -6,6 +6,14 @@ from typing import Iterable, Sequence
 
 
 @dataclass(frozen=True)
+class PromptSpec:
+    key: str
+    question: str
+    default: str | None = None
+    choices: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class CommandSpec:
     name: str
     summary: str
@@ -20,6 +28,7 @@ class CommandOutcome:
     command: CommandSpec | None
     kind: str
     message_lines: tuple[str, ...] = ()
+    prompt_steps: tuple[PromptSpec, ...] = ()
     should_exit: bool = False
     clear_screen: bool = False
 
@@ -114,6 +123,31 @@ class CommandRegistry:
         if command.name == "/clear":
             return CommandOutcome(command=command, kind="clear", clear_screen=True)
 
+        if command.name == "/scan":
+            return CommandOutcome(
+                command=command,
+                kind="wizard",
+                message_lines=(
+                    "Guided scan wizard started.",
+                    "MoSec will ask for target path, scan mode, and output format.",
+                ),
+                prompt_steps=(
+                    PromptSpec(key="target", question="Target path", default="."),
+                    PromptSpec(
+                        key="mode",
+                        question="Scan mode",
+                        default="deep",
+                        choices=("quick", "deep", "web", "mobile", "secrets", "sca", "policy"),
+                    ),
+                    PromptSpec(
+                        key="format",
+                        question="Output format",
+                        default="text",
+                        choices=("text", "json", "sarif"),
+                    ),
+                ),
+            )
+
         if command.name.startswith("/scan"):
             return CommandOutcome(
                 command=command,
@@ -154,7 +188,7 @@ def build_default_command_registry() -> CommandRegistry:
                 summary="Open the guided scan wizard",
                 description="Start a guided scan and collect the remaining context in prompts.",
                 category="Scanning",
-                implemented=False,
+                implemented=True,
             ),
             CommandSpec(
                 name="/scan-quick",

@@ -15,7 +15,7 @@ This is the command contract for the interactive MoSec terminal shell. Commands 
 | Command | Aliases | Purpose | Follow-up Flow |
 | --- | --- | --- | --- |
 | `/help` | `/h`, `/` | Show the command list and current shortcuts | None |
-| `/scan` | `/s` | Start the guided scan wizard | Ask for target, scan mode, and output preferences |
+| `/scan` | `/s` | Start the guided scan wizard | Ask for target, scan mode, and output format |
 | `/scan-quick` | `/quick-scan` | Fast scan of the current workspace | Optional confirm step |
 | `/scan-deep` | `/deep-scan` | Full analysis scan | Optional confirm step |
 | `/scan-web` | `/web-scan` | Web-focused scan mode | Optional target confirmation |
@@ -57,4 +57,3 @@ This keeps the command model deterministic and easy to learn.
 - All context-dependent questions should appear after the command is recognized.
 - The same command should behave consistently across light and dark terminals.
 - The command list should always be available through `/help`.
-

@@ -6,7 +6,7 @@ from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
 
-from .commands import build_default_command_registry
+from .commands import CommandOutcome, PromptSpec, build_default_command_registry
 
 try:  # pragma: no cover - optional on non-Unix platforms
     import curses
@@ -102,6 +102,49 @@ def _write_prompt_dock(width: int) -> None:
     sys.stdout.flush()
 
 
+def _format_prompt(spec: PromptSpec) -> str:
+    label = spec.question
+    if spec.default is not None:
+        label += f" [{spec.default}]"
+    if spec.choices:
+        label += f" ({'/'.join(spec.choices)})"
+    return f"{label}: "
+
+
+def _normalize_prompt_answer(spec: PromptSpec, raw: str) -> str:
+    value = raw.strip()
+    if not value and spec.default is not None:
+        return spec.default
+    if spec.choices:
+        lowered = value.lower()
+        if lowered in spec.choices:
+            return lowered
+        if spec.default is not None:
+            return spec.default
+    return value
+
+
+def _guided_scan_summary(answers: dict[str, str]) -> tuple[str, ...]:
+    return (
+        "Guided scan configured.",
+        f"Target: {answers.get('target', '.')}",
+        f"Mode: {answers.get('mode', 'deep')}",
+        f"Format: {answers.get('format', 'text')}",
+        "The scan engine wiring will be expanded in the next roadmap chunk.",
+    )
+
+
+def _collect_prompt_answers(
+    prompt_steps: tuple[PromptSpec, ...],
+    *,
+    input_func: Callable[[str], str],
+) -> dict[str, str]:
+    answers: dict[str, str] = {}
+    for spec in prompt_steps:
+        answers[spec.key] = _normalize_prompt_answer(spec, input_func(_format_prompt(spec)))
+    return answers
+
+
 def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
     value = ""
     while True:
@@ -123,6 +166,39 @@ def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -
         stdscr.move(y, x + len(visible))
         stdscr.refresh()
     return value
+
+
+def _curses_collect_prompt_answers(
+    stdscr: "curses.window",
+    prompt_steps: tuple[PromptSpec, ...],
+    *,
+    row: int,
+    width: int,
+    height: int,
+) -> dict[str, str]:
+    answers: dict[str, str] = {}
+    current_row = row
+    for spec in prompt_steps:
+        if current_row >= height:
+            current_row = max(height - 1, 0)
+        question = _format_prompt(spec)
+        question_width = max(width - len(question) - 1, 0)
+        try:
+            stdscr.move(current_row, 0)
+            stdscr.clrtoeol()
+            stdscr.addstr(current_row, 0, question[:width])
+            stdscr.refresh()
+        except curses.error:  # pragma: no cover - defensive terminal guard
+            pass
+        answer = _curses_read_line(
+            stdscr,
+            current_row,
+            min(len(question), max(width - 1, 0)),
+            question_width,
+        )
+        answers[spec.key] = _normalize_prompt_answer(spec, answer)
+        current_row += 1
+    return answers
 
 
 def _launch_home_screen_curses(registry) -> int:
@@ -166,7 +242,18 @@ def _launch_home_screen_curses(registry) -> int:
             return 0
 
         message_row = min(prompt_row + 4, max(height - 1, 0))
-        for offset, line in enumerate(outcome.message_lines):
+        lines_to_render: tuple[str, ...] = outcome.message_lines
+        if outcome.prompt_steps:
+            answers = _curses_collect_prompt_answers(
+                stdscr,
+                outcome.prompt_steps,
+                row=message_row,
+                width=width,
+                height=height,
+            )
+            lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+
+        for offset, line in enumerate(lines_to_render):
             if message_row + offset >= height:
                 break
             try:
@@ -210,7 +297,11 @@ def launch_home_screen(
 
     if outcome.clear_screen:
         output_func("\033[2J\033[H")
-    for line in outcome.message_lines:
+    lines_to_render: tuple[str, ...] = outcome.message_lines
+    if outcome.prompt_steps:
+        answers = _collect_prompt_answers(outcome.prompt_steps, input_func=input_func)
+        lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+    for line in lines_to_render:
         output_func(line)
     if outcome.should_exit:
         return 0

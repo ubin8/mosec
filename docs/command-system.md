@@ -41,6 +41,12 @@ Example:
 3. MoSec executes the scan
 4. MoSec renders results or opens the findings view
 
+The guided prompt flow is exact and structured. For `/scan`, the first revision collects:
+
+- target path
+- scan mode
+- output format
+
 ## Architecture
 
 ### 1. Input capture
@@ -150,4 +156,3 @@ The registry should store:
 - Validation
 - Screen transitions
 - Cancellation support
-

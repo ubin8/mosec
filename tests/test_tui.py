@@ -16,19 +16,25 @@ def test_render_home_screen_contains_logo_and_navigation() -> None:
 
 def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     prompts: list[str] = []
+    responses = iter(["/scan", "./fixtures", "web", "json"])
 
     def fake_input(prompt: str) -> str:
         prompts.append(prompt)
-        return "/help"
+        return next(responses)
 
     exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
     output = capsys.readouterr().out
 
     assert exit_code == 0
-    assert prompts == [""]
+    assert prompts[0] == ""
+    assert any(prompt.startswith("Target path") for prompt in prompts[1:])
+    assert any(prompt.startswith("Scan mode") for prompt in prompts[1:])
+    assert any(prompt.startswith("Output format") for prompt in prompts[1:])
     assert "▄█████▄" in output
     assert "> " in output
-    assert "MoSec commands" in output
-    assert "/scan-quick" in output
+    assert "Guided scan configured." in output
+    assert "Target: ./fixtures" in output
+    assert "Mode: web" in output
+    assert "Format: json" in output
     lines = output.splitlines()
     assert lines.count("─" * 96) >= 2
