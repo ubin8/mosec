@@ -7,6 +7,7 @@ from mosec.rule_browser import (
     render_rule_browser_json,
     render_rule_browser_lines,
     render_rule_browser_sarif,
+    resolve_rule_pack_index,
 )
 
 
@@ -46,3 +47,12 @@ def test_rule_browser_json_and_sarif_include_builtin_rules() -> None:
     assert any(rule["id"] == "WEB-SQLI-001" for rule in payload["selected_pack"]["rules"])
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rules"
     assert sarif["runs"][0]["tool"]["driver"]["rules"]
+
+
+def test_rule_browser_resolves_rule_pack_selection() -> None:
+    packs = build_builtin_rule_packs()
+
+    assert resolve_rule_pack_index(packs, "1") == 0
+    assert resolve_rule_pack_index(packs, "builtin-detectors") == 0
+    assert resolve_rule_pack_index(packs, "builtin-detectors@0.1.0") == 0
+    assert resolve_rule_pack_index(packs, "does-not-exist") is None

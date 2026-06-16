@@ -117,6 +117,29 @@ def build_builtin_rule_packs() -> list[RulePack]:
     return [build_builtin_rule_pack()]
 
 
+def rule_pack_labels(rule_packs: Sequence[RulePack]) -> list[str]:
+    return [f"{pack.name}@{pack.version}" for pack in rule_packs]
+
+
+def resolve_rule_pack_index(rule_packs: Sequence[RulePack], selection: str) -> int | None:
+    normalized = selection.strip().lower()
+    if not normalized:
+        return None
+    if normalized.isdigit():
+        index = int(normalized) - 1
+        if 0 <= index < len(rule_packs):
+            return index
+    for index, pack in enumerate(rule_packs):
+        labels = {
+            pack.name.lower(),
+            pack.version.lower(),
+            f"{pack.name}@{pack.version}".lower(),
+        }
+        if normalized in labels:
+            return index
+    return None
+
+
 def _selected_rule_pack(rule_packs: Sequence[RulePack], selected_pack_index: int) -> RulePack | None:
     if not rule_packs:
         return None

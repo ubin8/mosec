@@ -105,6 +105,28 @@ def test_command_registry_includes_rules_browser() -> None:
     assert "Rules browser opened." in rules_result.message_lines[0]
 
 
+def test_command_registry_includes_rule_pack_selection_commands() -> None:
+    registry = build_default_command_registry()
+
+    next_command = registry.resolve("/rule-next-pack")
+    prev_command = registry.resolve("/rule-prev-pack")
+    select_command = registry.resolve("/rule-select-pack")
+    next_result = registry.execute("/rule-pack-next")
+    prev_result = registry.execute("/rule-pack-prev")
+    select_result = registry.execute("/rule-pack-select")
+
+    assert next_command is not None
+    assert next_command.name == "/rule-pack-next"
+    assert prev_command is not None
+    assert prev_command.name == "/rule-pack-prev"
+    assert select_command is not None
+    assert select_command.name == "/rule-pack-select"
+    assert next_result.kind == "workspace"
+    assert prev_result.kind == "workspace"
+    assert select_result.kind == "workspace"
+    assert select_result.prompt_steps[0].key == "pack"
+
+
 def test_command_registry_includes_findings_search_and_filters() -> None:
     registry = build_default_command_registry()
 

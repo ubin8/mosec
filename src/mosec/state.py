@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
 from .findings import TriageStatus
-from .rule_browser import build_builtin_rule_packs
+from .rule_browser import build_builtin_rule_packs, resolve_rule_pack_index, rule_pack_labels
 from .rules import RulePack
 
 if TYPE_CHECKING:
@@ -195,6 +195,42 @@ class SessionState:
         if self.selected_rule_index < 0 or self.selected_rule_index >= len(pack.rules):
             return pack.rules[0]
         return pack.rules[self.selected_rule_index]
+
+    def set_selected_rule_pack_index(self, index: int) -> bool:
+        if not self.rule_packs:
+            return False
+        clamped = max(0, min(index, len(self.rule_packs) - 1))
+        changed = clamped != self.selected_rule_pack_index
+        self.selected_rule_pack_index = clamped
+        self.selected_rule_index = 0
+        return changed
+
+    def select_rule_pack(self, selection: str) -> bool:
+        index = resolve_rule_pack_index(self.rule_packs, selection)
+        if index is None:
+            return False
+        return self.set_selected_rule_pack_index(index)
+
+    def select_next_rule_pack(self) -> bool:
+        if len(self.rule_packs) <= 1:
+            return False
+        next_index = (self.selected_rule_pack_index + 1) % len(self.rule_packs)
+        return self.set_selected_rule_pack_index(next_index)
+
+    def select_previous_rule_pack(self) -> bool:
+        if len(self.rule_packs) <= 1:
+            return False
+        previous_index = (self.selected_rule_pack_index - 1) % len(self.rule_packs)
+        return self.set_selected_rule_pack_index(previous_index)
+
+    def selected_rule_pack_label(self) -> str:
+        pack = self.selected_rule_pack()
+        if pack is None:
+            return "none"
+        return f"{pack.name}@{pack.version}"
+
+    def available_rule_pack_labels(self) -> tuple[str, ...]:
+        return tuple(rule_pack_labels(self.rule_packs))
 
     def set_current_view(self, view: str) -> None:
         normalized = view.strip().lower()

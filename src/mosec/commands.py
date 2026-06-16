@@ -255,6 +255,27 @@ class CommandRegistry:
                     "Browse builtin rule packs and inspect detector coverage.",
                 ),
             )
+        if command.name == "/rule-pack-next":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Select the next rule pack.",),
+            )
+        if command.name == "/rule-pack-prev":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Select the previous rule pack.",),
+            )
+        if command.name == "/rule-pack-select":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Select a rule pack.",),
+                prompt_steps=(
+                    PromptSpec(key="pack", question="Rule pack", default="1"),
+                ),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -495,6 +516,30 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/rulebook",),
                 summary="Open the rules browser",
                 description="Inspect builtin and custom rule packs.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/rule-pack-next",
+                aliases=("/rule-next-pack",),
+                summary="Select the next rule pack",
+                description="Advance the selected rule pack in the browser.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/rule-pack-prev",
+                aliases=("/rule-prev-pack",),
+                summary="Select the previous rule pack",
+                description="Move back to the previous rule pack in the browser.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/rule-pack-select",
+                aliases=("/rule-select-pack",),
+                summary="Select a rule pack",
+                description="Choose a rule pack by index or name.",
                 category="Analysis",
                 implemented=True,
             ),

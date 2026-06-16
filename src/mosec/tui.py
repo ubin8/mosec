@@ -381,6 +381,57 @@ def _apply_findings_workspace_change(
     return ()
 
 
+def _rule_pack_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...]:
+    labels = state.available_rule_pack_labels()
+    default = str(state.selected_rule_pack_index + 1) if labels else "1"
+    return (
+        PromptSpec(
+            key="pack",
+            question="Rule pack",
+            default=default,
+            choices=labels,
+        ),
+    )
+
+
+def _apply_rule_browser_workspace_change(
+    state: SessionState,
+    command_name: str,
+    answers: dict[str, str] | None = None,
+) -> tuple[str, ...]:
+    answers = answers or {}
+    if command_name == "/rules":
+        state.set_current_view("rules")
+        state.set_status("Rules browser opened.", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
+    if command_name == "/rule-pack-next":
+        if not state.select_next_rule_pack():
+            state.set_status("Only one rule pack available.", kind="warning")
+            return ("Only one rule pack available.",)
+        state.set_current_view("rules")
+        state.set_status(f"Rule pack selected: {state.selected_rule_pack_label()}", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
+    if command_name == "/rule-pack-prev":
+        if not state.select_previous_rule_pack():
+            state.set_status("Only one rule pack available.", kind="warning")
+            return ("Only one rule pack available.",)
+        state.set_current_view("rules")
+        state.set_status(f"Rule pack selected: {state.selected_rule_pack_label()}", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
+    if command_name == "/rule-pack-select":
+        pack = answers.get("pack", "").strip()
+        if not pack:
+            state.set_status("No rule pack selection provided.", kind="warning")
+            return ("No rule pack selection provided.",)
+        if not state.select_rule_pack(pack):
+            state.set_status(f"Unknown rule pack selection: {pack}", kind="warning")
+            return (f"Unknown rule pack selection: {pack}",)
+        state.set_current_view("rules")
+        state.set_status(f"Rule pack selected: {state.selected_rule_pack_label()}", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
+    return ()
+
+
 def _apply_triage_workspace_change(
     state: SessionState,
     command_name: str,
@@ -632,9 +683,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
-            state.set_current_view("rules")
-            state.set_status("Rules browser opened.", kind="success")
-            lines_to_render = tuple(render_current_view_text(state).splitlines())
+            lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/reports",
             "/policy",
@@ -784,9 +833,16 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
 
         message_row = min(prompt_row + 4, max(height - 1, 0))
         if outcome.prompt_steps:
+            prompt_steps = (
+                _guided_scan_prompt_steps(state)
+                if outcome.command and outcome.command.name == "/scan"
+                else _rule_pack_prompt_steps(state)
+                if outcome.command and outcome.command.name == "/rule-pack-select"
+                else outcome.prompt_steps
+            )
             answers = _curses_collect_prompt_answers(
                 stdscr,
-                _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps,
+                prompt_steps,
                 row=message_row,
                 width=width,
                 height=height,
@@ -811,6 +867,8 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                 _apply_findings_workspace_change(state, outcome.command.name, answers)
                 state.set_current_view("findings")
                 lines_to_render = outcome.message_lines + _findings_view_lines(state)
+            elif outcome.command and outcome.command.name == "/rule-pack-select":
+                lines_to_render = outcome.message_lines + _apply_rule_browser_workspace_change(state, outcome.command.name, answers)
             elif outcome.command and outcome.command.name in {
                 "/triage-in-review",
                 "/triage-triaged",
@@ -920,9 +978,14 @@ def launch_home_screen(
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
-        state.set_current_view("rules")
-        state.set_status("Rules browser opened.", kind="success")
-        lines_to_render = tuple(render_current_view_text(state).splitlines())
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+        "/rule-pack-next",
+        "/rule-pack-prev",
+    }:
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rule-pack-select" and not outcome.prompt_steps:
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-clear-filters":
         _apply_findings_workspace_change(state, outcome.command.name)
         state.set_current_view("findings")
@@ -1022,9 +1085,14 @@ def launch_home_screen(
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
-        state.set_current_view("rules")
-        state.set_status("Rules browser opened.", kind="success")
-        lines_to_render = tuple(render_current_view_text(state).splitlines())
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+        "/rule-pack-next",
+        "/rule-pack-prev",
+    }:
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rule-pack-select" and not outcome.prompt_steps:
+        lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/reports",
         "/policy",
@@ -1051,7 +1119,13 @@ def launch_home_screen(
         lines_to_render = _export_current_view_lines(state, state.output_format)
 
     if outcome.prompt_steps:
-        prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
+        prompt_steps = (
+            _guided_scan_prompt_steps(state)
+            if outcome.command and outcome.command.name == "/scan"
+            else _rule_pack_prompt_steps(state)
+            if outcome.command and outcome.command.name == "/rule-pack-select"
+            else outcome.prompt_steps
+        )
         answers = _collect_prompt_answers(prompt_steps, input_func=input_func)
         if answers is None:
             state.set_status("Guided scan canceled.", kind="warning")
@@ -1065,6 +1139,8 @@ def launch_home_screen(
         }:
             _apply_findings_workspace_change(state, outcome.command.name, answers)
             lines_to_render = outcome.message_lines + _findings_view_lines(state)
+        elif outcome.command and outcome.command.name == "/rule-pack-select":
+            lines_to_render = outcome.message_lines + _apply_rule_browser_workspace_change(state, outcome.command.name, answers)
         elif outcome.command and outcome.command.name in {
             "/triage-in-review",
             "/triage-triaged",

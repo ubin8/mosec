@@ -4,6 +4,7 @@ from mosec.findings import CodeLocation, Confidence, Finding, Severity
 from mosec.state import SessionState
 from mosec.tui import (
     _apply_findings_workspace_change,
+    _apply_rule_browser_workspace_change,
     _apply_triage_workspace_change,
     _baseline_findings_view_lines,
     _finding_detail_lines,
@@ -390,6 +391,40 @@ def test_launch_home_screen_rules_browser_shows_builtin_catalog(capsys) -> None:
     assert "WEB-SQLI-001" in output
     assert "Categories" in output
     assert "Status [SUCCESS]: Rules browser opened." in output
+
+
+def test_rule_browser_workspace_selection_moves_between_packs() -> None:
+    from mosec.rule_browser import build_builtin_rule_pack
+    from mosec.findings import Confidence
+    from mosec.rules import MatchStrategy, Rule, RuleCategory, RulePack, RulePattern, RuleTarget
+
+    builtin = build_builtin_rule_pack()
+    custom_rule = Rule(
+        id="CUSTOM-001",
+        name="Custom Rule",
+        description="Custom",
+        category=RuleCategory.CUSTOM,
+        severity=Severity.LOW,
+        confidence=Confidence.LOW,
+        strategy=MatchStrategy.CUSTOM,
+        targets=[RuleTarget(language="python")],
+        patterns=[RulePattern(kind="custom", value="custom")],
+    )
+    custom_pack = RulePack(name="custom-pack", version="1.0.0", rules=[custom_rule])
+    state = SessionState(rule_packs=[builtin, custom_pack])
+
+    next_lines = _apply_rule_browser_workspace_change(state, "/rule-pack-next")
+    assert state.selected_rule_pack_label() == "custom-pack@1.0.0"
+    assert "Rule pack selected: custom-pack@1.0.0" in state.status_text
+    assert "Selected pack: custom-pack@1.0.0" in next_lines
+
+    select_lines = _apply_rule_browser_workspace_change(
+        state,
+        "/rule-pack-select",
+        {"pack": "builtin-detectors@0.1.0"},
+    )
+    assert state.selected_rule_pack_label() == "builtin-detectors@0.1.0"
+    assert "Selected pack: builtin-detectors@0.1.0" in select_lines
 
 
 def test_launch_home_screen_export_current_view_renders_export(capsys) -> None:

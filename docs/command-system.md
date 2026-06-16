@@ -144,6 +144,9 @@ The registry should store:
 - `/export-sarif`
 - `/reports`
 - `/rules`
+- `/rule-pack-next`
+- `/rule-pack-prev`
+- `/rule-pack-select`
 - `/policy`
 - `/mobile`
 

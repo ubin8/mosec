@@ -28,6 +28,9 @@ This is the command contract for the interactive MoSec terminal shell. Commands 
 | `/export-sarif` | `/export-view-sarif`, `/export-current-sarif` | Export the current view as SARIF | None |
 | `/reports` | `/report` | Open report history and export actions | Choose output format or saved report |
 | `/rules` | `/rulebook` | Open rules and rule-pack browser | Choose builtin or custom rule packs |
+| `/rule-pack-next` | `/rule-next-pack` | Select the next rule pack | None |
+| `/rule-pack-prev` | `/rule-prev-pack` | Select the previous rule pack | None |
+| `/rule-pack-select` | `/rule-select-pack` | Select a rule pack by index or name | Ask for a pack identifier |
 | `/policy` | `/gates` | Open policy and threshold settings | Choose branch or workspace policy |
 | `/mobile` | `/android`, `/ios` | Jump to mobile analysis views | Choose platform |
 | `/workspace` | `/ws` | Show current workspace context | None |

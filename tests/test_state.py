@@ -2,6 +2,8 @@ from pathlib import Path
 
 from mosec.state import SessionState
 from mosec.findings import CodeLocation, Confidence, Finding, FindingStatus, Severity, TriageStatus
+from mosec.rule_browser import build_builtin_rule_pack
+from mosec.rules import MatchStrategy, Rule, RuleCategory, RulePack, RulePattern, RuleTarget
 
 
 def test_session_state_tracks_workspace_mode_and_last_scan() -> None:
@@ -56,6 +58,33 @@ def test_session_state_exposes_builtin_rule_browser() -> None:
     assert len(state.current_view_rules()) >= 10
     assert state.current_view_selected_rule() is not None
     assert state.current_view_selected_rule().id == "SEC-SECRET-001"
+
+
+def test_session_state_can_select_rule_packs() -> None:
+    builtin = build_builtin_rule_pack()
+    custom_rule = Rule(
+        id="CUSTOM-001",
+        name="Custom Rule",
+        description="Custom",
+        category=RuleCategory.CUSTOM,
+        severity=Severity.LOW,
+        confidence=Confidence.LOW,
+        strategy=MatchStrategy.CUSTOM,
+        targets=[RuleTarget(language="python")],
+        patterns=[RulePattern(kind="custom", value="custom")],
+    )
+    custom_pack = RulePack(name="custom-pack", version="1.0.0", rules=[custom_rule])
+    state = SessionState(rule_packs=[builtin, custom_pack])
+
+    assert state.selected_rule_pack_label() == "builtin-detectors@0.1.0"
+    assert state.select_next_rule_pack() is True
+    assert state.selected_rule_pack_label() == "custom-pack@1.0.0"
+    assert state.selected_rule() is not None
+    assert state.selected_rule().id == "CUSTOM-001"
+    assert state.select_previous_rule_pack() is True
+    assert state.selected_rule_pack_label() == "builtin-detectors@0.1.0"
+    assert state.select_rule_pack("custom-pack@1.0.0") is True
+    assert state.selected_rule_pack_label() == "custom-pack@1.0.0"
 
 
 def test_session_state_can_repeat_last_scan() -> None:
