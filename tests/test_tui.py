@@ -38,3 +38,18 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     assert "Format: json" in output
     lines = output.splitlines()
     assert lines.count("─" * 96) >= 2
+
+
+def test_launch_home_screen_workspace_command_shows_session_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/workspace"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Session state" in output
+    assert "Workspace: ." in output
+    assert "Current mode: deep" in output
+    assert "Output format: text" in output
+    assert "Last scan: none" in output

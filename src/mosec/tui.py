@@ -7,6 +7,7 @@ from shutil import get_terminal_size
 from typing import Callable
 
 from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry
+from .state import SessionState
 
 try:  # pragma: no cover - optional on non-Unix platforms
     import curses
@@ -134,6 +135,10 @@ def _guided_scan_summary(answers: dict[str, str]) -> tuple[str, ...]:
     )
 
 
+def _guided_scan_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...]:
+    return state.scan_prompt_specs()
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -143,6 +148,10 @@ def _collect_prompt_answers(
     for spec in prompt_steps:
         answers[spec.key] = _normalize_prompt_answer(spec, input_func(_format_prompt(spec)))
     return answers
+
+
+def _session_state_lines(state: SessionState) -> tuple[str, ...]:
+    return state.summary_lines()
 
 
 def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
@@ -201,7 +210,7 @@ def _curses_collect_prompt_answers(
     return answers
 
 
-def _launch_home_screen_curses(registry) -> int:
+def _launch_home_screen_curses(registry, state: SessionState) -> int:
     locale.setlocale(locale.LC_ALL, "")
 
     def _draw(stdscr: "curses.window") -> int:
@@ -234,6 +243,7 @@ def _launch_home_screen_curses(registry) -> int:
         choice = _curses_read_line(stdscr, prompt_row + 1, 2, max(width - 2, 0))
         if not choice.strip():
             return 0
+        state.remember_command(choice)
         outcome = registry.execute(choice)
 
         if outcome.clear_screen:
@@ -246,12 +256,23 @@ def _launch_home_screen_curses(registry) -> int:
         if outcome.prompt_steps:
             answers = _curses_collect_prompt_answers(
                 stdscr,
-                outcome.prompt_steps,
+                _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps,
                 row=message_row,
                 width=width,
                 height=height,
             )
+            if outcome.command and outcome.command.name == "/scan":
+                state.record_scan(
+                    target=answers.get("target", state.workspace),
+                    mode=answers.get("mode", state.scan_mode),
+                    output_format=answers.get("format", state.output_format),
+                )
             lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+        elif outcome.command and outcome.command.name == "/workspace":
+            lines_to_render = _session_state_lines(state)
+        elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
+            state.scan_mode = outcome.command.name.removeprefix("/scan-")
+            state.last_command = outcome.command.name
 
         for offset, line in enumerate(lines_to_render):
             if message_row + offset >= height:
@@ -276,6 +297,7 @@ def launch_home_screen(
 ) -> int:
     registry = build_default_command_registry()
     history = CommandHistory()
+    state = SessionState()
     terminal_size = get_terminal_size((120, 36))
     width = width or terminal_size.columns
     height = height or terminal_size.lines
@@ -283,7 +305,7 @@ def launch_home_screen(
         sys.stdout.write("\033[2J\033[H")
         sys.stdout.flush()
         if curses is not None and sys.stdin.isatty() and sys.stdout.isatty():
-            return _launch_home_screen_curses(registry)
+            return _launch_home_screen_curses(registry, state)
     output_func(render_home_screen(width=width, height=height))
     if not interactive:
         return 0
@@ -293,6 +315,7 @@ def launch_home_screen(
     if not choice:
         return 0
     history.add(choice)
+    state.remember_command(choice)
     if choice in {"/history", "/recent"}:
         output_func("Recent commands:")
         for item in history.recent():
@@ -306,8 +329,19 @@ def launch_home_screen(
         output_func("\033[2J\033[H")
     lines_to_render: tuple[str, ...] = outcome.message_lines
     if outcome.prompt_steps:
-        answers = _collect_prompt_answers(outcome.prompt_steps, input_func=input_func)
+        prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
+        answers = _collect_prompt_answers(prompt_steps, input_func=input_func)
+        if outcome.command and outcome.command.name == "/scan":
+            state.record_scan(
+                target=answers.get("target", state.workspace),
+                mode=answers.get("mode", state.scan_mode),
+                output_format=answers.get("format", state.output_format),
+            )
         lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
+    elif outcome.command and outcome.command.name == "/workspace":
+        lines_to_render = _session_state_lines(state)
+    elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
+        state.scan_mode = outcome.command.name.removeprefix("/scan-")
     for line in lines_to_render:
         output_func(line)
     if outcome.should_exit:

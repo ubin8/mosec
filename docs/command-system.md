@@ -73,6 +73,12 @@ The guided prompt flow is exact and structured. For `/scan`, the first revision 
   - report-view
   - rules-browser
   - settings
+- The active session state should remember:
+  - current workspace target
+  - current scan mode
+  - current output format
+  - last scan target, mode, and format
+  - last executed command
 
 ### 4. Execution
 

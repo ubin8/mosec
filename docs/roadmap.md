@@ -28,7 +28,7 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - [x] Implement guided prompts for commands that need context
 - [x] Add command history and recall
 - [x] Add help and command discovery
-- [ ] Add a session state model for workspace, mode, and last scan
+- [x] Add a session state model for workspace, mode, and last scan
 - [ ] Add a consistent notification/status area
 - [ ] Add a cancellation and confirmation flow
 
