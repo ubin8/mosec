@@ -208,11 +208,18 @@ def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
             "No scan results available yet.",
             "Run /scan to collect a new session scan.",
         )
-    grouped = _group_findings_by_severity(state.findings)
+    filtered = state.filtered_findings()
     lines = [
         "Findings workspace",
         "Severity grouping",
+        *state.findings_filter_summary(),
     ]
+    if not filtered:
+        lines.append("No findings match the current filters.")
+        if state.last_scan_target is not None:
+            lines.append(f"Last scan target: {state.last_scan_target}")
+        return tuple(lines)
+    grouped = _group_findings_by_severity(filtered)
     for severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO):
         bucket = grouped.get(severity, [])
         lines.append(f"{severity.value.title()} ({len(bucket)})")
@@ -246,6 +253,31 @@ def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
         f"Language: {selected.language or 'n/a'}",
         f"Remediation: {selected.remediation or 'n/a'}",
     )
+
+
+def _apply_findings_workspace_change(
+    state: SessionState,
+    command_name: str,
+    answers: dict[str, str] | None = None,
+) -> tuple[str, ...]:
+    answers = answers or {}
+    if command_name == "/findings-search":
+        state.set_findings_search_query(answers.get("query"))
+        if state.findings_search_query is None:
+            state.set_status("Findings search cleared.", kind="success")
+            return ("Findings search cleared.",)
+        state.set_status(f"Findings search set to {state.findings_search_query}.", kind="success")
+        return (f"Findings search set to {state.findings_search_query}.",)
+    if command_name == "/findings-filter-severity":
+        severity = answers.get("severity", "high").strip().lower() or "high"
+        state.set_findings_severity_filters([severity])
+        state.set_status(f"Findings severity filter set to {severity}.", kind="success")
+        return (f"Findings severity filter set to {severity}.",)
+    if command_name == "/findings-clear-filters":
+        state.clear_findings_filters()
+        state.set_status("Findings filters cleared.", kind="success")
+        return ("Findings filters cleared.",)
+    return ()
 
 
 def _collect_prompt_answers(
@@ -451,6 +483,13 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
             state.set_status("Finding detail view opened.")
             lines_to_render = _finding_detail_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+            "/findings-search",
+            "/findings-filter-severity",
+            "/findings-clear-filters",
+        } and not outcome.prompt_steps:
+            _apply_findings_workspace_change(state, outcome.command.name)
+            lines_to_render = outcome.message_lines + _findings_view_lines(state)
         elif outcome.kind == "scan" and outcome.command is not None:
             if outcome.command.name == "/scan-compare":
                 comparison_lines = _compare_scan_lines(state)
@@ -586,7 +625,14 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                         pass
                 stdscr.refresh()
                 return 0
-            if outcome.command and outcome.command.name == "/scan":
+            if outcome.command and outcome.command.name in {
+                "/findings-search",
+                "/findings-filter-severity",
+                "/findings-clear-filters",
+            }:
+                _apply_findings_workspace_change(state, outcome.command.name, answers)
+                lines_to_render = outcome.message_lines + _findings_view_lines(state)
+            elif outcome.command and outcome.command.name == "/scan":
                 state.record_scan(
                     target=answers.get("target", state.workspace),
                     mode=answers.get("mode", state.scan_mode),
@@ -596,7 +642,9 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                     f"Guided scan prepared for {state.workspace}",
                     kind="success",
                 )
-            lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
+                lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
+            else:
+                lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
         elif outcome.command and outcome.command.name == "/workspace":
             lines_to_render = _session_state_lines(state)
         elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
@@ -674,6 +722,9 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
         state.set_status("Finding detail view opened.")
         lines_to_render = _finding_detail_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-clear-filters":
+        _apply_findings_workspace_change(state, outcome.command.name)
+        lines_to_render = outcome.message_lines + _findings_view_lines(state)
     elif outcome.kind == "scan" and outcome.command is not None:
         if outcome.command.name == "/scan-compare":
             comparison_lines = _compare_scan_lines(state)
@@ -749,14 +800,23 @@ def launch_home_screen(
             _emit_status_lines(state, output_func)
             output_func("Guided scan canceled.")
             return 0
-        if outcome.command and outcome.command.name == "/scan":
+        if outcome.command and outcome.command.name in {
+            "/findings-search",
+            "/findings-filter-severity",
+            "/findings-clear-filters",
+        }:
+            _apply_findings_workspace_change(state, outcome.command.name, answers)
+            lines_to_render = outcome.message_lines + _findings_view_lines(state)
+        elif outcome.command and outcome.command.name == "/scan":
             state.record_scan(
                 target=answers.get("target", state.workspace),
                 mode=answers.get("mode", state.scan_mode),
                 output_format=answers.get("format", state.output_format),
             )
             state.set_status(f"Guided scan prepared for {state.workspace}", kind="success")
-        lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
+            lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
+        else:
+            lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
     elif outcome.command and outcome.command.name == "/workspace":
         lines_to_render = _session_state_lines(state)
     elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:

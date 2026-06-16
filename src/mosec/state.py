@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
@@ -18,6 +18,8 @@ class SessionState:
     status_kind: str = "info"
     findings: list["Finding"] = None  # type: ignore[assignment]
     selected_finding_index: int = 0
+    findings_search_query: str | None = None
+    findings_severity_filters: list[str] = field(default_factory=list)
     last_scan_target: str | None = None
     last_scan_mode: str | None = None
     last_scan_format: str | None = None
@@ -77,12 +79,62 @@ class SessionState:
         if self.findings:
             self.set_status(f"Loaded {len(self.findings)} findings.", kind="success")
 
+    def set_findings_search_query(self, query: str | None) -> None:
+        value = query.strip() if query is not None else ""
+        self.findings_search_query = value or None
+        self.selected_finding_index = 0
+
+    def set_findings_severity_filters(self, severities: list[str]) -> None:
+        normalized = [severity.strip().lower() for severity in severities if severity.strip()]
+        self.findings_severity_filters = normalized
+        self.selected_finding_index = 0
+
+    def clear_findings_filters(self) -> None:
+        self.findings_search_query = None
+        self.findings_severity_filters = []
+        self.selected_finding_index = 0
+
+    def filtered_findings(self) -> list["Finding"]:
+        findings = list(self.findings)
+        if self.findings_search_query is not None:
+            query = self.findings_search_query.lower()
+            findings = [
+                finding
+                for finding in findings
+                if query in finding.title.lower()
+                or query in finding.message.lower()
+                or query in finding.rule_id.lower()
+                or query in str(finding.location.path).lower()
+                or query in finding.severity.value.lower()
+            ]
+        if self.findings_severity_filters:
+            allowed = set(self.findings_severity_filters)
+            findings = [finding for finding in findings if finding.severity.value in allowed]
+        return findings
+
+    def findings_filter_summary(self) -> tuple[str, ...]:
+        search = self.findings_search_query or "none"
+        severities = ", ".join(self.findings_severity_filters) if self.findings_severity_filters else "all"
+        return (
+            f"Search query: {search}",
+            f"Severity filters: {severities}",
+            f"Visible findings: {len(self.filtered_findings())} / {len(self.findings)}",
+        )
+
     def selected_finding(self) -> "Finding | None":
-        if not self.findings:
+        findings = self.filtered_findings()
+        if not findings:
             return None
-        if self.selected_finding_index < 0 or self.selected_finding_index >= len(self.findings):
-            return self.findings[0]
-        return self.findings[self.selected_finding_index]
+        if self.selected_finding_index < 0 or self.selected_finding_index >= len(findings):
+            return findings[0]
+        return findings[self.selected_finding_index]
+
+    def selected_finding_from(self, findings: list["Finding"]) -> "Finding | None":
+        if not findings:
+            return None
+        if self.selected_finding_index < 0 or self.selected_finding_index >= len(findings):
+            return findings[0]
+        return findings[self.selected_finding_index]
 
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text
@@ -113,6 +165,8 @@ class SessionState:
             f"Current mode: {self.scan_mode}",
             f"Output format: {self.output_format}",
             f"Loaded findings: {len(self.findings)}",
+            f"Findings search: {self.findings_search_query or 'none'}",
+            f"Findings severity filters: {', '.join(self.findings_severity_filters) if self.findings_severity_filters else 'none'}",
         ]
         if self.last_scan_target is None:
             lines.append("Last scan: none")

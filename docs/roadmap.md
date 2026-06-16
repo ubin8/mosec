@@ -29,30 +29,30 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - [x] Add command history and recall
 - [x] Add help and command discovery
 - [x] Add a session state model for workspace, mode, and last scan
-- [ ] Add a consistent notification/status area
-- [ ] Add a cancellation and confirmation flow
+- [x] Add a consistent notification/status area
+- [x] Add a cancellation and confirmation flow
 
 ### Phase 2: Scan Workflows
 
-- [ ] `/scan` guided scan entry
-- [ ] `/scan-quick` fast workspace scan
-- [ ] `/scan-deep` full analysis scan
-- [ ] `/scan-web` web-focused scan mode
-- [ ] `/scan-mobile` mobile-focused scan mode
-- [ ] `/scan-secrets` secrets-only mode
-- [ ] `/scan-sca` dependency-only mode
-- [ ] `/scan-policy` policy and baseline-only mode
-- [ ] Scan target selection from the TUI
-- [ ] Scan progress and cancellation feedback
-- [ ] Repeat last scan
-- [ ] Compare current scan to last scan
+- [x] `/scan` guided scan entry
+- [x] `/scan-quick` fast workspace scan
+- [x] `/scan-deep` full analysis scan
+- [x] `/scan-web` web-focused scan mode
+- [x] `/scan-mobile` mobile-focused scan mode
+- [x] `/scan-secrets` secrets-only mode
+- [x] `/scan-sca` dependency-only mode
+- [x] `/scan-policy` policy and baseline-only mode
+- [x] Scan target selection from the TUI
+- [x] Scan progress and cancellation feedback
+- [x] Repeat last scan
+- [x] Compare current scan to last scan
 
 ### Phase 3: Findings Workspace
 
-- [ ] Findings list view
-- [ ] Finding detail view
-- [ ] Severity grouping
-- [ ] Search and filters
+- [x] Findings list view
+- [x] Finding detail view
+- [x] Severity grouping
+- [x] Search and filters
 - [ ] Baseline-aware views
 - [ ] Suppression review from the UI
 - [ ] Triage actions from the UI

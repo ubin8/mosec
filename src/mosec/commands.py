@@ -175,6 +175,33 @@ class CommandRegistry:
                     "Guided scan workflows will be enabled in the next roadmap chunk.",
                 ),
             )
+        if command.name == "/findings-search":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Search findings.",),
+                prompt_steps=(PromptSpec(key="query", question="Search query"),),
+            )
+        if command.name == "/findings-filter-severity":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Filter findings by severity.",),
+                prompt_steps=(
+                    PromptSpec(
+                        key="severity",
+                        question="Severity",
+                        default="high",
+                        choices=("critical", "high", "medium", "low", "info"),
+                    ),
+                ),
+            )
+        if command.name == "/findings-clear-filters":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Findings filters cleared.",),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/rules", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -313,6 +340,30 @@ def build_default_command_registry() -> CommandRegistry:
                 description="Inspect the latest or saved scan findings.",
                 category="Analysis",
                 implemented=False,
+            ),
+            CommandSpec(
+                name="/findings-search",
+                aliases=("/results-search",),
+                summary="Search findings",
+                description="Filter the findings workspace by a search query.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/findings-filter-severity",
+                aliases=("/results-filter-severity",),
+                summary="Filter findings by severity",
+                description="Show findings for one selected severity bucket.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/findings-clear-filters",
+                aliases=("/results-clear-filters",),
+                summary="Clear findings filters",
+                description="Remove search and severity filters from the findings workspace.",
+                category="Analysis",
+                implemented=True,
             ),
             CommandSpec(
                 name="/finding-detail",

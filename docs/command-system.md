@@ -77,8 +77,11 @@ The guided prompt flow is exact and structured. For `/scan`, the first revision 
   - current workspace target
   - current scan mode
   - current output format
+  - current status message and severity
   - last scan target, mode, and format
   - last executed command
+- Destructive actions should require confirmation.
+- Guided prompt flows should accept `/back` or `/cancel` to abort the current dialog.
 
 ### 4. Execution
 
@@ -129,6 +132,9 @@ The registry should store:
 ### Analysis
 
 - `/findings`
+- `/findings-search`
+- `/findings-filter-severity`
+- `/findings-clear-filters`
 - `/reports`
 - `/rules`
 - `/policy`

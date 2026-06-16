@@ -103,3 +103,58 @@ def test_session_state_can_store_and_select_findings() -> None:
     assert len(state.findings) == 2
     assert state.selected_finding() is not None
     assert state.selected_finding().title == "Critical issue"
+
+
+def test_session_state_filters_findings_by_query_and_severity() -> None:
+    state = SessionState()
+    findings = [
+        Finding(
+            id="one",
+            rule_id="RULE-1",
+            title="Critical issue",
+            message="critical",
+            severity=Severity.CRITICAL,
+            confidence=Confidence.HIGH,
+            location=CodeLocation(path=Path("app.py"), start_line=1),
+            category="test",
+        ),
+        Finding(
+            id="two",
+            rule_id="RULE-2",
+            title="High issue",
+            message="high",
+            severity=Severity.HIGH,
+            confidence=Confidence.MEDIUM,
+            location=CodeLocation(path=Path("service.py"), start_line=2),
+            category="test",
+        ),
+        Finding(
+            id="three",
+            rule_id="RULE-3",
+            title="Info note",
+            message="info",
+            severity=Severity.INFO,
+            confidence=Confidence.LOW,
+            location=CodeLocation(path=Path("notes.py"), start_line=3),
+            category="test",
+        ),
+    ]
+
+    state.store_findings(findings)
+    state.set_findings_search_query("issue")
+    state.set_findings_severity_filters(["critical", "high"])
+
+    filtered = state.filtered_findings()
+    summary = state.findings_filter_summary()
+
+    assert len(filtered) == 2
+    assert [finding.rule_id for finding in filtered] == ["RULE-1", "RULE-2"]
+    assert "Search query: issue" in summary
+    assert "Severity filters: critical, high" in summary
+    assert "Visible findings: 2 / 3" in summary
+
+    state.clear_findings_filters()
+
+    assert state.findings_search_query is None
+    assert state.findings_severity_filters == []
+    assert state.filtered_findings() == findings

@@ -2,7 +2,13 @@ from pathlib import Path
 
 from mosec.findings import CodeLocation, Confidence, Finding, Severity
 from mosec.state import SessionState
-from mosec.tui import _finding_detail_lines, _findings_view_lines, launch_home_screen, render_home_screen
+from mosec.tui import (
+    _apply_findings_workspace_change,
+    _finding_detail_lines,
+    _findings_view_lines,
+    launch_home_screen,
+    render_home_screen,
+)
 
 
 def test_render_home_screen_contains_logo_and_navigation() -> None:
@@ -190,6 +196,36 @@ def test_launch_home_screen_findings_workspace_shows_empty_state(capsys) -> None
     assert "Status [INFO]: Findings workspace opened." in output
 
 
+def test_launch_home_screen_findings_search_updates_workspace_state(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/findings-search", "issue"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert prompts[0] == ""
+    assert "Search findings." in output
+    assert "Findings search set to issue." in output
+    assert "Status [SUCCESS]: Findings search set to issue." in output
+
+
+def test_launch_home_screen_clears_findings_filters(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/findings-clear-filters"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Findings filters cleared." in output
+    assert "Status [SUCCESS]: Findings filters cleared." in output
+
+
 def test_findings_view_groups_by_severity() -> None:
     state = SessionState()
     state.store_findings(
@@ -230,10 +266,107 @@ def test_findings_view_groups_by_severity() -> None:
     lines = _findings_view_lines(state)
 
     assert "Severity grouping" in lines
+    assert "Search query: none" in lines
+    assert "Severity filters: all" in lines
     assert "Critical (1)" in lines
     assert "High (1)" in lines
     assert "Low (1)" in lines
     assert any("Critical issue" in line for line in lines)
+
+
+def test_findings_view_applies_search_and_severity_filters() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+            ),
+            Finding(
+                id="high-1",
+                rule_id="RULE-2",
+                title="High issue",
+                message="high",
+                severity=Severity.HIGH,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=2),
+                category="test",
+            ),
+            Finding(
+                id="info-1",
+                rule_id="RULE-3",
+                title="Info note",
+                message="info",
+                severity=Severity.INFO,
+                confidence=Confidence.LOW,
+                location=CodeLocation(path=Path("notes.py"), start_line=3),
+                category="test",
+            ),
+        ]
+    )
+
+    state.set_findings_search_query("issue")
+    state.set_findings_severity_filters(["high"])
+
+    lines = _findings_view_lines(state)
+
+    assert "Search query: issue" in lines
+    assert "Severity filters: high" in lines
+    assert "Visible findings: 1 / 3" in lines
+    assert "High (1)" in lines
+    assert any("High issue" in line for line in lines)
+    assert "Critical (0)" in lines
+    assert "Info (0)" in lines
+
+
+def test_apply_findings_workspace_change_updates_search_and_filters() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+            ),
+            Finding(
+                id="high-1",
+                rule_id="RULE-2",
+                title="High issue",
+                message="high",
+                severity=Severity.HIGH,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=2),
+                category="test",
+            ),
+        ]
+    )
+
+    _apply_findings_workspace_change(state, "/findings-search", {"query": "issue"})
+    _apply_findings_workspace_change(state, "/findings-filter-severity", {"severity": "high"})
+    lines = _findings_view_lines(state)
+
+    assert state.findings_search_query == "issue"
+    assert state.findings_severity_filters == ["high"]
+    assert "Search query: issue" in lines
+    assert "Severity filters: high" in lines
+    assert "Visible findings: 1 / 2" in lines
+
+    _apply_findings_workspace_change(state, "/findings-clear-filters", {})
+
+    assert state.findings_search_query is None
+    assert state.findings_severity_filters == []
+    assert "Search query: none" in _findings_view_lines(state)
 
 
 def test_launch_home_screen_finding_detail_shows_empty_state(capsys) -> None:
