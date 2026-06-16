@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry, normalize_command_text
 from .findings import Finding, Severity, TriageStatus
+from .reporting import render_current_view_json, render_current_view_sarif, render_current_view_text
 from .state import SessionState
 
 try:  # pragma: no cover - optional on non-Unix platforms
@@ -179,6 +180,14 @@ def _scan_summary_lines(mode: str, state: SessionState) -> tuple[str, ...]:
         f"Mode: {state.scan_mode}",
         f"Format: {state.output_format}",
     )
+
+
+def _export_current_view_lines(state: SessionState, output_format: str) -> tuple[str, ...]:
+    if output_format == "json":
+        return tuple(render_current_view_json(state).splitlines())
+    if output_format == "sarif":
+        return tuple(render_current_view_sarif(state).splitlines())
+    return tuple(render_current_view_text(state).splitlines())
 
 
 def _scan_progress_lines(mode: str, target: str) -> tuple[str, ...]:
@@ -604,19 +613,33 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         elif outcome.kind == "unknown":
             state.set_status(f"Unknown command: {choice}", kind="warning")
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
+            state.set_current_view("history")
             state.set_status("Recent commands shown.")
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+            state.set_current_view("findings")
             state.set_status("Findings workspace opened.")
             lines_to_render = _findings_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
+            state.set_current_view("finding-detail")
             state.set_status("Finding detail view opened.")
             lines_to_render = _finding_detail_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
+            state.set_current_view("findings-baselined")
             state.set_status("Baselined findings workspace opened.")
             lines_to_render = _baseline_findings_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
+            state.set_current_view("suppression-review")
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+            "/reports",
+            "/rules",
+            "/policy",
+            "/mobile",
+            "/settings",
+        }:
+            state.set_current_view(outcome.command.name.removeprefix("/"))
+            state.set_status(f"{state.current_view_title()} opened.")
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/triage-in-review",
             "/triage-triaged",
@@ -636,7 +659,11 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             "/findings-clear-filters",
         } and not outcome.prompt_steps:
             _apply_findings_workspace_change(state, outcome.command.name)
+            state.set_current_view("findings")
             lines_to_render = outcome.message_lines + _findings_view_lines(state)
+        elif outcome.kind == "export" and outcome.command is not None:
+            state.set_status(f"Current view exported as {state.output_format}.", kind="success")
+            lines_to_render = _export_current_view_lines(state, state.output_format)
         elif outcome.kind == "scan" and outcome.command is not None:
             if outcome.command.name == "/scan-compare":
                 comparison_lines = _compare_scan_lines(state)
@@ -713,6 +740,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                 state.set_status("Exiting MoSec.")
                 return 0
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
+            state.set_current_view("workspace")
             workspace = _curses_prompt_workspace_target(
                 stdscr,
                 row=min(prompt_row + 3, max(height - 1, 0)),
@@ -778,11 +806,13 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                 "/findings-clear-filters",
             }:
                 _apply_findings_workspace_change(state, outcome.command.name, answers)
+                state.set_current_view("findings")
                 lines_to_render = outcome.message_lines + _findings_view_lines(state)
             elif outcome.command and outcome.command.name in {
                 "/triage-in-review",
                 "/triage-triaged",
             }:
+                state.set_current_view("finding-detail")
                 lines_to_render = outcome.message_lines + _apply_triage_workspace_change(state, outcome.command.name, answers) + _finding_detail_lines(state)
             elif outcome.command and outcome.command.name == "/scan":
                 state.record_scan(
@@ -798,6 +828,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             else:
                 lines_to_render = outcome.message_lines + _scan_progress_lines(answers.get("mode", state.scan_mode), answers.get("target", state.workspace)) + _guided_scan_summary(answers)
         elif outcome.command and outcome.command.name == "/workspace":
+            state.set_current_view("workspace")
             lines_to_render = _session_state_lines(state)
         elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
             mode = _scan_mode_from_command_name(outcome.command.name)
@@ -867,16 +898,41 @@ def launch_home_screen(
     elif outcome.kind == "unknown":
         state.set_status(f"Unknown command: {choice}", kind="warning")
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
+        state.set_current_view("history")
         state.set_status("Recent commands shown.")
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+        state.set_current_view("findings")
         state.set_status("Findings workspace opened.")
         lines_to_render = _findings_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
+        state.set_current_view("finding-detail")
         state.set_status("Finding detail view opened.")
         lines_to_render = _finding_detail_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
+        state.set_current_view("findings-baselined")
+        state.set_status("Baselined findings workspace opened.")
+        lines_to_render = _baseline_findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
+        state.set_current_view("suppression-review")
+        state.set_status("Suppression review workspace opened.")
+        lines_to_render = _suppression_review_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-clear-filters":
         _apply_findings_workspace_change(state, outcome.command.name)
+        state.set_current_view("findings")
         lines_to_render = outcome.message_lines + _findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+        "/reports",
+        "/rules",
+        "/policy",
+        "/mobile",
+        "/settings",
+    }:
+        state.set_current_view(outcome.command.name.removeprefix("/"))
+        state.set_status(f"{state.current_view_title()} opened.")
+        lines_to_render = (
+            f"{state.current_view_title()} workspace",
+            f"Current view: {state.current_view}",
+        )
     elif outcome.kind == "scan" and outcome.command is not None:
         if outcome.command.name == "/scan-compare":
             comparison_lines = _compare_scan_lines(state)
@@ -905,6 +961,9 @@ def launch_home_screen(
                 lines_to_render = outcome.message_lines + _scan_progress_lines(mode, state.workspace) + _scan_summary_lines(mode, state)
             else:
                 state.set_status("Scan mode selected: guided")
+    elif outcome.kind == "export" and outcome.command is not None:
+        state.set_status(f"Current view exported as {state.output_format}.", kind="success")
+        lines_to_render = _export_current_view_lines(state, state.output_format)
     elif outcome.kind == "wizard":
         state.set_status("Guided scan wizard started.")
     elif outcome.kind == "confirm" and outcome.confirmation is not None:
@@ -941,14 +1000,34 @@ def launch_home_screen(
         output_func(f"Format: {state.output_format}")
         return 0
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+        state.set_current_view("findings")
         state.set_status("Findings workspace opened.")
         lines_to_render = _findings_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/finding-detail":
+        state.set_current_view("finding-detail")
+        state.set_status("Finding detail view opened.")
+        lines_to_render = _finding_detail_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings-baselined":
+        state.set_current_view("findings-baselined")
         state.set_status("Baselined findings workspace opened.")
         lines_to_render = _baseline_findings_view_lines(state)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
+        state.set_current_view("suppression-review")
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+        "/reports",
+        "/rules",
+        "/policy",
+        "/mobile",
+        "/settings",
+    }:
+        state.set_current_view(outcome.command.name.removeprefix("/"))
+        state.set_status(f"{state.current_view_title()} opened.")
+        lines_to_render = (
+            f"{state.current_view_title()} workspace",
+            f"Current view: {state.current_view}",
+        )
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/triage-in-review",
         "/triage-triaged",
@@ -958,6 +1037,9 @@ def launch_home_screen(
         lines_to_render = ("No finding selected for triage.",)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/triage-untriaged"}:
         lines_to_render = _apply_triage_workspace_change(state, outcome.command.name)
+    elif outcome.kind == "export":
+        state.set_status(f"Current view exported as {state.output_format}.", kind="success")
+        lines_to_render = _export_current_view_lines(state, state.output_format)
 
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps

@@ -24,6 +24,8 @@ This is the command contract for the interactive MoSec terminal shell. Commands 
 | `/scan-sca` | `/deps-scan`, `/sca-scan` | Dependency-only scan | None or current workspace confirmation |
 | `/scan-policy` | `/policy-scan` | Policy, baseline, and suppression review | Ask for current workspace or report |
 | `/findings` | `/results` | Open the findings workspace | Choose latest, current, or saved scan |
+| `/export-json` | `/export-view-json`, `/export-current-json` | Export the current view as JSON | None |
+| `/export-sarif` | `/export-view-sarif`, `/export-current-sarif` | Export the current view as SARIF | None |
 | `/reports` | `/report` | Open report history and export actions | Choose output format or saved report |
 | `/rules` | `/rulebook` | Open rules and rule-pack browser | Choose builtin or custom rule packs |
 | `/policy` | `/gates` | Open policy and threshold settings | Choose branch or workspace policy |

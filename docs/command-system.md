@@ -140,6 +140,8 @@ The registry should store:
 - `/findings-search`
 - `/findings-filter-severity`
 - `/findings-clear-filters`
+- `/export-json`
+- `/export-sarif`
 - `/reports`
 - `/rules`
 - `/policy`

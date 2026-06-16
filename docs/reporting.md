@@ -8,6 +8,11 @@ MoSec currently emits:
 - JSON
 - SARIF
 
+The TUI can also export the current view directly through:
+
+- `/export-json`
+- `/export-sarif`
+
 ## Text output
 
 Good for interactive use and quick inspection.

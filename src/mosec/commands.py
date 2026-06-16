@@ -214,6 +214,12 @@ class CommandRegistry:
                 kind="workspace",
                 message_lines=("Findings filters cleared.",),
             )
+        if command.name in {"/export-json", "/export-sarif"}:
+            return CommandOutcome(
+                command=command,
+                kind="export",
+                message_lines=(f"Exporting the current view as {command.name.removeprefix('/export-')}.",),
+            )
         if command.name == "/triage-in-review":
             return CommandOutcome(
                 command=command,
@@ -458,6 +464,22 @@ def build_default_command_registry() -> CommandRegistry:
                 description="Browse saved reports and export formats.",
                 category="Analysis",
                 implemented=False,
+            ),
+            CommandSpec(
+                name="/export-json",
+                aliases=("/export-view-json", "/export-current-json"),
+                summary="Export the current view as JSON",
+                description="Render the current workspace view as JSON.",
+                category="Reporting",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/export-sarif",
+                aliases=("/export-view-sarif", "/export-current-sarif"),
+                summary="Export the current view as SARIF",
+                description="Render the current workspace view as SARIF.",
+                category="Reporting",
+                implemented=True,
             ),
             CommandSpec(
                 name="/rules",

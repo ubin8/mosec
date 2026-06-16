@@ -146,6 +146,22 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     assert "Reset the selected finding to untriaged." in triage_untriaged_result.message_lines[0]
 
 
+def test_command_registry_includes_export_current_view_commands() -> None:
+    registry = build_default_command_registry()
+
+    export_json_command = registry.resolve("/export-current-json")
+    export_sarif_command = registry.resolve("/export-current-sarif")
+    export_json_result = registry.execute("/export-json")
+    export_sarif_result = registry.execute("/export-sarif")
+
+    assert export_json_command is not None
+    assert export_json_command.name == "/export-json"
+    assert export_sarif_command is not None
+    assert export_sarif_command.name == "/export-sarif"
+    assert export_json_result.kind == "export"
+    assert export_sarif_result.kind == "export"
+
+
 def test_command_history_tracks_recent_commands() -> None:
     history = CommandHistory(limit=3)
 

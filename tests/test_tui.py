@@ -377,6 +377,19 @@ def test_launch_home_screen_suppression_review_workspace_shows_empty_state(capsy
     assert "Status [INFO]: Suppression review workspace opened." in output
 
 
+def test_launch_home_screen_export_current_view_renders_export(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/export-json"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Current view exported as text." in output
+    assert "view: home" in output
+    assert "title: Home" in output
+
+
 def test_suppression_review_view_lists_suppressed_findings() -> None:
     state = SessionState()
     state.store_scan_results(

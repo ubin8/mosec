@@ -15,6 +15,7 @@ class SessionState:
     workspace: str = "."
     scan_mode: str = "deep"
     output_format: str = "text"
+    current_view: str = "home"
     status_text: str = "Ready"
     status_kind: str = "info"
     findings: list["Finding"] = None  # type: ignore[assignment]
@@ -44,6 +45,7 @@ class SessionState:
         self.workspace = target or self.workspace
         self.scan_mode = mode or self.scan_mode
         self.output_format = output_format or self.output_format
+        self.current_view = "scan"
         self.last_scan_target = self.workspace
         self.last_scan_mode = self.scan_mode
         self.last_scan_format = self.output_format
@@ -167,6 +169,52 @@ class SessionState:
             return self.suppressed_findings[0]
         return self.suppressed_findings[self.selected_suppressed_finding_index]
 
+    def set_current_view(self, view: str) -> None:
+        normalized = view.strip().lower()
+        if normalized:
+            self.current_view = normalized
+
+    def current_view_title(self) -> str:
+        titles = {
+            "home": "Home",
+            "scan": "Scan",
+            "findings": "Findings",
+            "findings-baselined": "Baselined findings",
+            "suppression-review": "Suppression review",
+            "finding-detail": "Finding detail",
+            "workspace": "Workspace",
+            "history": "History",
+            "reports": "Reports",
+            "rules": "Rules",
+            "policy": "Policy",
+            "mobile": "Mobile",
+            "settings": "Settings",
+        }
+        return titles.get(self.current_view, self.current_view.replace("-", " ").title())
+
+    def current_view_findings(self) -> list["Finding"]:
+        if self.current_view == "findings-baselined":
+            return list(self.baseline_findings)
+        if self.current_view == "suppression-review":
+            return list(self.suppressed_findings)
+        if self.current_view == "finding-detail":
+            selected = self.selected_finding()
+            return [] if selected is None else [selected]
+        if self.current_view == "findings":
+            return list(self.filtered_findings())
+        if self.current_view == "scan":
+            return list(self.findings)
+        return []
+
+    def current_view_selected_finding(self) -> "Finding | None":
+        if self.current_view == "findings-baselined":
+            return self.selected_baseline_finding()
+        if self.current_view == "suppression-review":
+            return self.selected_suppressed_finding()
+        if self.current_view in {"findings", "scan", "finding-detail"}:
+            return self.selected_finding()
+        return None
+
     def update_selected_finding_triage(
         self,
         triage_status: TriageStatus,
@@ -219,6 +267,7 @@ class SessionState:
             f"Workspace: {self.workspace}",
             f"Current mode: {self.scan_mode}",
             f"Output format: {self.output_format}",
+            f"Current view: {self.current_view}",
             f"Loaded findings: {len(self.findings)}",
             f"Baselined findings: {len(self.baseline_findings)}",
             f"Suppressed findings: {len(self.suppressed_findings)}",
