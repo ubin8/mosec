@@ -147,6 +147,25 @@ def test_launch_home_screen_policy_scan_prepares_state(capsys) -> None:
     assert "Status [SUCCESS]: Policy scan prepared for ." in output
 
 
+def test_launch_home_screen_workspace_selection_updates_target(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/workspace", "./projects/mosec"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert prompts[0] == ""
+    assert "Workspace target [.]: " in prompts[1]
+    assert "Workspace selected." in output
+    assert "Workspace: ./projects/mosec" in output
+    assert "Status [SUCCESS]: Workspace set to ./projects/mosec" in output
+
+
 def test_launch_home_screen_allows_scan_cancellation(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/scan", "/cancel"])
@@ -183,16 +202,20 @@ def test_launch_home_screen_requires_confirmation_for_exit(capsys) -> None:
 
 
 def test_launch_home_screen_workspace_command_shows_session_state(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/workspace", "./projects/mosec"])
+
     def fake_input(prompt: str) -> str:
-        return "/workspace"
+        prompts.append(prompt)
+        return next(responses)
 
     exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
     output = capsys.readouterr().out
 
     assert exit_code == 0
+    assert prompts[0] == ""
     assert "Status [INFO]: Ready" in output
-    assert "Session state" in output
-    assert "Workspace: ." in output
-    assert "Current mode: deep" in output
-    assert "Output format: text" in output
-    assert "Last scan: none" in output
+    assert "Workspace target [.]: " in prompts[1]
+    assert "Workspace selected." in output
+    assert "Workspace: ./projects/mosec" in output
+    assert "Status [SUCCESS]: Workspace set to ./projects/mosec" in output
