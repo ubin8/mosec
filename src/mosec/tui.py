@@ -192,6 +192,22 @@ def _compare_scan_lines(state: SessionState) -> tuple[str, ...] | None:
     return state.compare_current_to_last_scan()
 
 
+def _findings_view_lines(state: SessionState) -> tuple[str, ...]:
+    if state.last_scan_target is None:
+        return (
+            "Findings workspace",
+            "No scan results available yet.",
+            "Run /scan to collect a new session scan.",
+        )
+    return (
+        "Findings workspace",
+        f"Last scan target: {state.last_scan_target}",
+        f"Last scan mode: {state.last_scan_mode or state.scan_mode}",
+        f"Last scan format: {state.last_scan_format or state.output_format}",
+        "Findings list view will expand as scan persistence lands.",
+    )
+
+
 def _collect_prompt_answers(
     prompt_steps: tuple[PromptSpec, ...],
     *,
@@ -389,6 +405,9 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_status(f"Unknown command: {choice}", kind="warning")
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
             state.set_status("Recent commands shown.")
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+            state.set_status("Findings workspace opened.")
+            lines_to_render = _findings_view_lines(state)
         elif outcome.kind == "scan" and outcome.command is not None:
             if outcome.command.name == "/scan-compare":
                 comparison_lines = _compare_scan_lines(state)
@@ -606,6 +625,9 @@ def launch_home_screen(
         state.set_status(f"Unknown command: {choice}", kind="warning")
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
         state.set_status("Recent commands shown.")
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+        state.set_status("Findings workspace opened.")
+        lines_to_render = _findings_view_lines(state)
     elif outcome.kind == "scan" and outcome.command is not None:
         if outcome.command.name == "/scan-compare":
             comparison_lines = _compare_scan_lines(state)
@@ -669,6 +691,9 @@ def launch_home_screen(
         output_func(f"Mode: {state.scan_mode}")
         output_func(f"Format: {state.output_format}")
         return 0
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/findings":
+        state.set_status("Findings workspace opened.")
+        lines_to_render = _findings_view_lines(state)
 
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps

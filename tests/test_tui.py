@@ -173,6 +173,19 @@ def test_launch_home_screen_compare_last_scan_reports_missing_history(capsys) ->
     assert "Status [WARNING]: No previous scan to compare." in output
 
 
+def test_launch_home_screen_findings_workspace_shows_empty_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/findings"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Findings workspace" in output
+    assert "No scan results available yet." in output
+    assert "Status [INFO]: Findings workspace opened." in output
+
+
 def test_launch_home_screen_workspace_selection_updates_target(capsys) -> None:
     prompts: list[str] = []
     responses = iter(["/workspace", "./projects/mosec"])
