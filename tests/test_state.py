@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from mosec.state import SessionState
-from mosec.findings import CodeLocation, Confidence, Finding, FindingStatus, Severity
+from mosec.findings import CodeLocation, Confidence, Finding, FindingStatus, Severity, TriageStatus
 
 
 def test_session_state_tracks_workspace_mode_and_last_scan() -> None:
@@ -103,6 +103,37 @@ def test_session_state_can_store_and_select_findings() -> None:
     assert len(state.findings) == 2
     assert state.selected_finding() is not None
     assert state.selected_finding().title == "Critical issue"
+
+
+def test_session_state_can_triage_selected_finding() -> None:
+    state = SessionState()
+    findings = [
+        Finding(
+            id="one",
+            rule_id="RULE-1",
+            title="Critical issue",
+            message="critical",
+            severity=Severity.CRITICAL,
+            confidence=Confidence.HIGH,
+            location=CodeLocation(path=Path("app.py"), start_line=1),
+            category="test",
+        )
+    ]
+
+    state.store_findings(findings)
+    updated = state.update_selected_finding_triage(
+        TriageStatus.IN_REVIEW,
+        reason="needs manual verification",
+        note="triaged from the UI",
+    )
+
+    assert updated is not None
+    assert updated.triage_status == TriageStatus.IN_REVIEW
+    assert updated.triage_reason == "needs manual verification"
+    assert updated.triage_note == "triaged from the UI"
+    assert state.findings[0].triage_status == TriageStatus.IN_REVIEW
+    assert state.findings[0].triage_reason == "needs manual verification"
+    assert state.findings[0].triage_note == "triaged from the UI"
 
 
 def test_session_state_can_store_baseline_findings() -> None:

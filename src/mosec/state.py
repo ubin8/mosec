@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
+from .findings import TriageStatus
 
 if TYPE_CHECKING:
     from .findings import Finding
@@ -165,6 +166,30 @@ class SessionState:
         ):
             return self.suppressed_findings[0]
         return self.suppressed_findings[self.selected_suppressed_finding_index]
+
+    def update_selected_finding_triage(
+        self,
+        triage_status: TriageStatus,
+        *,
+        reason: str | None = None,
+        note: str | None = None,
+    ) -> "Finding | None":
+        selected = self.selected_finding()
+        if selected is None:
+            return None
+
+        updated = replace(
+            selected,
+            triage_status=triage_status,
+            triage_reason=reason.strip() if reason is not None and reason.strip() else None,
+            triage_note=note.strip() if note is not None and note.strip() else None,
+        )
+        try:
+            selected_index = self.findings.index(selected)
+        except ValueError:
+            return None
+        self.findings[selected_index] = updated
+        return updated
 
     def set_status(self, text: str, *, kind: str = "info") -> None:
         self.status_text = text.strip() or self.status_text

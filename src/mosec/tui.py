@@ -8,7 +8,7 @@ from typing import Callable
 from collections import defaultdict
 
 from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry, normalize_command_text
-from .findings import Finding, Severity
+from .findings import Finding, Severity, TriageStatus
 from .state import SessionState
 
 try:  # pragma: no cover - optional on non-Unix platforms
@@ -341,6 +341,9 @@ def _finding_detail_lines(state: SessionState) -> tuple[str, ...]:
         f"Framework: {selected.framework or 'n/a'}",
         f"Language: {selected.language or 'n/a'}",
         f"Remediation: {selected.remediation or 'n/a'}",
+        f"Triage reason: {selected.triage_reason or 'n/a'}",
+        f"Triage note: {selected.triage_note or 'n/a'}",
+        "Triage actions: /triage-in-review | /triage-triaged | /triage-untriaged",
     )
 
 
@@ -367,6 +370,42 @@ def _apply_findings_workspace_change(
         state.set_status("Findings filters cleared.", kind="success")
         return ("Findings filters cleared.",)
     return ()
+
+
+def _apply_triage_workspace_change(
+    state: SessionState,
+    command_name: str,
+    answers: dict[str, str] | None = None,
+) -> tuple[str, ...]:
+    answers = answers or {}
+    triage_map = {
+        "/triage-in-review": TriageStatus.IN_REVIEW,
+        "/triage-triaged": TriageStatus.TRIAGED,
+        "/triage-untriaged": TriageStatus.UNTRIAGED,
+    }
+    triage_status = triage_map.get(command_name)
+    if triage_status is None:
+        return ()
+
+    reason = answers.get("reason")
+    note = answers.get("note")
+    updated = state.update_selected_finding_triage(triage_status, reason=reason, note=note)
+    if updated is None:
+        state.set_status("No finding selected for triage.", kind="warning")
+        return ("No finding selected for triage.",)
+
+    if triage_status == TriageStatus.UNTRIAGED:
+        state.set_status(f"Finding reset to {triage_status.value}.", kind="success")
+        return (f"Finding reset to {triage_status.value}.",)
+
+    status_label = triage_status.value.replace("_", " ")
+    details = [f"Finding marked as {status_label}."]
+    if updated.triage_reason:
+        details.append(f"Reason: {updated.triage_reason}")
+    if updated.triage_note:
+        details.append(f"Note: {updated.triage_note}")
+    state.set_status(f"Finding marked as {status_label}.", kind="success")
+    return tuple(details)
 
 
 def _collect_prompt_answers(
@@ -579,6 +618,19 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+            "/triage-in-review",
+            "/triage-triaged",
+            "/triage-untriaged",
+        } and state.selected_finding() is None:
+            state.set_status("No finding selected for triage.", kind="warning")
+            lines_to_render = ("No finding selected for triage.",)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+            "/triage-in-review",
+            "/triage-triaged",
+            "/triage-untriaged",
+        } and outcome.command.name == "/triage-untriaged":
+            lines_to_render = _apply_triage_workspace_change(state, outcome.command.name)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/findings-search",
             "/findings-filter-severity",
             "/findings-clear-filters",
@@ -727,6 +779,11 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             }:
                 _apply_findings_workspace_change(state, outcome.command.name, answers)
                 lines_to_render = outcome.message_lines + _findings_view_lines(state)
+            elif outcome.command and outcome.command.name in {
+                "/triage-in-review",
+                "/triage-triaged",
+            }:
+                lines_to_render = outcome.message_lines + _apply_triage_workspace_change(state, outcome.command.name, answers) + _finding_detail_lines(state)
             elif outcome.command and outcome.command.name == "/scan":
                 state.record_scan(
                     target=answers.get("target", state.workspace),
@@ -892,6 +949,15 @@ def launch_home_screen(
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/suppression-review":
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
+        "/triage-in-review",
+        "/triage-triaged",
+        "/triage-untriaged",
+    } and state.selected_finding() is None:
+        state.set_status("No finding selected for triage.", kind="warning")
+        lines_to_render = ("No finding selected for triage.",)
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/triage-untriaged"}:
+        lines_to_render = _apply_triage_workspace_change(state, outcome.command.name)
 
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
@@ -908,6 +974,11 @@ def launch_home_screen(
         }:
             _apply_findings_workspace_change(state, outcome.command.name, answers)
             lines_to_render = outcome.message_lines + _findings_view_lines(state)
+        elif outcome.command and outcome.command.name in {
+            "/triage-in-review",
+            "/triage-triaged",
+        }:
+            lines_to_render = outcome.message_lines + _apply_triage_workspace_change(state, outcome.command.name, answers) + _finding_detail_lines(state)
         elif outcome.command and outcome.command.name == "/scan":
             state.record_scan(
                 target=answers.get("target", state.workspace),

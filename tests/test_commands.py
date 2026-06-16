@@ -100,11 +100,17 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     suppression_command = registry.resolve("/suppressed-findings")
     severity_command = registry.resolve("/results-filter-severity")
     clear_command = registry.resolve("/results-clear-filters")
+    triage_in_review_command = registry.resolve("/triage-open")
+    triage_triaged_command = registry.resolve("/triage-resolve")
+    triage_untriaged_command = registry.resolve("/triage-reset")
     search_result = registry.execute("/findings-search")
     baseline_result = registry.execute("/findings-baselined")
     suppression_result = registry.execute("/suppression-review")
     severity_result = registry.execute("/findings-filter-severity")
     clear_result = registry.execute("/findings-clear-filters")
+    triage_in_review_result = registry.execute("/triage-in-review")
+    triage_triaged_result = registry.execute("/triage-triaged")
+    triage_untriaged_result = registry.execute("/triage-untriaged")
 
     assert search_command is not None
     assert search_command.name == "/findings-search"
@@ -116,6 +122,12 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     assert severity_command.name == "/findings-filter-severity"
     assert clear_command is not None
     assert clear_command.name == "/findings-clear-filters"
+    assert triage_in_review_command is not None
+    assert triage_in_review_command.name == "/triage-in-review"
+    assert triage_triaged_command is not None
+    assert triage_triaged_command.name == "/triage-triaged"
+    assert triage_untriaged_command is not None
+    assert triage_untriaged_command.name == "/triage-untriaged"
     assert search_result.kind == "workspace"
     assert search_result.prompt_steps[0].key == "query"
     assert baseline_result.kind == "workspace"
@@ -126,6 +138,12 @@ def test_command_registry_includes_findings_search_and_filters() -> None:
     assert severity_result.prompt_steps[0].key == "severity"
     assert clear_result.kind == "workspace"
     assert "Findings filters cleared." in clear_result.message_lines[0]
+    assert triage_in_review_result.kind == "workspace"
+    assert triage_in_review_result.prompt_steps[0].key == "reason"
+    assert triage_triaged_result.kind == "workspace"
+    assert triage_triaged_result.prompt_steps[0].key == "reason"
+    assert triage_untriaged_result.kind == "workspace"
+    assert "Reset the selected finding to untriaged." in triage_untriaged_result.message_lines[0]
 
 
 def test_command_history_tracks_recent_commands() -> None:

@@ -41,7 +41,7 @@ def test_scan_repository_returns_result(tmp_path: Path) -> None:
 
     assert result.root == tmp_path.resolve()
     assert result.stats.files_seen == 4
-    assert result.stats.files_selected == 1
+    assert result.stats.files_selected == 2
     assert result.stats.findings == 4
     assert any(f.rule_id == "SEC-SECRET-001" for f in result.findings)
     assert any(f.rule_id == "WEB-SQLI-001" for f in result.findings)

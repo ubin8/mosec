@@ -4,6 +4,7 @@ from mosec.findings import CodeLocation, Confidence, Finding, Severity
 from mosec.state import SessionState
 from mosec.tui import (
     _apply_findings_workspace_change,
+    _apply_triage_workspace_change,
     _baseline_findings_view_lines,
     _finding_detail_lines,
     _findings_view_lines,
@@ -536,6 +537,90 @@ def test_finding_detail_view_shows_selected_finding() -> None:
     assert "Severity: critical" in lines
     assert "Rule: RULE-1" in lines
     assert any("Fix it" in line for line in lines)
+
+
+def test_finding_detail_view_shows_triage_actions() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+                triage_reason="manual review",
+                triage_note="already checked",
+            )
+        ]
+    )
+
+    lines = _finding_detail_lines(state)
+
+    assert any("Triage reason: manual review" in line for line in lines)
+    assert any("Triage note: already checked" in line for line in lines)
+    assert any("/triage-in-review" in line for line in lines)
+
+
+def test_apply_triage_workspace_change_updates_selected_finding() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+            )
+        ]
+    )
+
+    lines = _apply_triage_workspace_change(
+        state,
+        "/triage-in-review",
+        {"reason": "needs manual verification", "note": "triaged from the UI"},
+    )
+
+    assert state.findings[0].triage_status.value == "in_review"
+    assert state.findings[0].triage_reason == "needs manual verification"
+    assert state.findings[0].triage_note == "triaged from the UI"
+    assert "Finding marked as in review." in lines[0]
+    assert any("Reason: needs manual verification" in line for line in lines)
+    assert any("Note: triaged from the UI" in line for line in lines)
+
+
+def test_apply_triage_workspace_change_resets_selected_finding() -> None:
+    state = SessionState()
+    state.store_findings(
+        [
+            Finding(
+                id="critical-1",
+                rule_id="RULE-1",
+                title="Critical issue",
+                message="critical",
+                severity=Severity.CRITICAL,
+                confidence=Confidence.HIGH,
+                location=CodeLocation(path=Path("app.py"), start_line=1),
+                category="test",
+                triage_reason="needs review",
+                triage_note="to be reset",
+            )
+        ]
+    )
+
+    lines = _apply_triage_workspace_change(state, "/triage-untriaged")
+
+    assert state.findings[0].triage_status.value == "untriaged"
+    assert state.findings[0].triage_reason is None
+    assert state.findings[0].triage_note is None
+    assert "Finding reset to untriaged." in lines[0]
 
 
 def test_launch_home_screen_workspace_selection_updates_target(capsys) -> None:

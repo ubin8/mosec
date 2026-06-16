@@ -214,6 +214,32 @@ class CommandRegistry:
                 kind="workspace",
                 message_lines=("Findings filters cleared.",),
             )
+        if command.name == "/triage-in-review":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Mark the selected finding as in review.",),
+                prompt_steps=(
+                    PromptSpec(key="reason", question="Triage reason"),
+                    PromptSpec(key="note", question="Triage note"),
+                ),
+            )
+        if command.name == "/triage-triaged":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Mark the selected finding as triaged.",),
+                prompt_steps=(
+                    PromptSpec(key="reason", question="Triage reason"),
+                    PromptSpec(key="note", question="Triage note"),
+                ),
+            )
+        if command.name == "/triage-untriaged":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Reset the selected finding to untriaged.",),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/rules", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -391,6 +417,30 @@ def build_default_command_registry() -> CommandRegistry:
                 summary="Clear findings filters",
                 description="Remove search and severity filters from the findings workspace.",
                 category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/triage-in-review",
+                aliases=("/triage-open",),
+                summary="Mark finding in review",
+                description="Update the selected finding to in_review with an optional reason and note.",
+                category="Review",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/triage-triaged",
+                aliases=("/triage-resolve",),
+                summary="Mark finding triaged",
+                description="Update the selected finding to triaged with an optional reason and note.",
+                category="Review",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/triage-untriaged",
+                aliases=("/triage-reset",),
+                summary="Reset finding triage",
+                description="Reset the selected finding back to untriaged.",
+                category="Review",
                 implemented=True,
             ),
             CommandSpec(
