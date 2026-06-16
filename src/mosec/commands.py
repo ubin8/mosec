@@ -172,6 +172,32 @@ class CommandRegistry:
         return CommandOutcome(command=command, kind="noop")
 
 
+@dataclass
+class CommandHistory:
+    limit: int = 50
+    _entries: list[str] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self._entries is None:
+            self._entries = []
+
+    def add(self, command: str) -> None:
+        normalized = normalize_command_text(command)
+        if normalized is None:
+            return
+        self._entries.append(normalized)
+        if len(self._entries) > self.limit:
+            del self._entries[: len(self._entries) - self.limit]
+
+    def recent(self) -> tuple[str, ...]:
+        return tuple(reversed(self._entries))
+
+    def previous(self) -> str | None:
+        if len(self._entries) < 2:
+            return None
+        return self._entries[-2]
+
+
 def build_default_command_registry() -> CommandRegistry:
     return CommandRegistry(
         (

@@ -6,7 +6,7 @@ from importlib import resources
 from shutil import get_terminal_size
 from typing import Callable
 
-from .commands import CommandOutcome, PromptSpec, build_default_command_registry
+from .commands import CommandHistory, CommandOutcome, PromptSpec, build_default_command_registry
 
 try:  # pragma: no cover - optional on non-Unix platforms
     import curses
@@ -275,6 +275,7 @@ def launch_home_screen(
     interactive: bool = False,
 ) -> int:
     registry = build_default_command_registry()
+    history = CommandHistory()
     terminal_size = get_terminal_size((120, 36))
     width = width or terminal_size.columns
     height = height or terminal_size.lines
@@ -290,6 +291,12 @@ def launch_home_screen(
     _write_prompt_dock(width)
     choice = input_func("").strip()
     if not choice:
+        return 0
+    history.add(choice)
+    if choice in {"/history", "/recent"}:
+        output_func("Recent commands:")
+        for item in history.recent():
+            output_func(f"  {item}")
         return 0
     outcome = registry.execute(choice)
     sys.stdout.write("\n")

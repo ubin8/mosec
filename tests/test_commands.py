@@ -1,4 +1,4 @@
-from mosec.commands import build_default_command_registry, normalize_command_text
+from mosec.commands import CommandHistory, build_default_command_registry, normalize_command_text
 
 
 def test_normalize_command_text_rejects_free_text() -> None:
@@ -41,3 +41,16 @@ def test_command_registry_execute_help_and_unknown() -> None:
     assert len(scan_result.prompt_steps) == 3
     assert scan_result.prompt_steps[0].key == "target"
     assert scan_result.prompt_steps[1].choices == ("quick", "deep", "web", "mobile", "secrets", "sca", "policy")
+
+
+def test_command_history_tracks_recent_commands() -> None:
+    history = CommandHistory(limit=3)
+
+    history.add("/scan")
+    history.add("/help")
+    history.add("/scan-web")
+    history.add("not a command")
+    history.add("/exit")
+
+    assert history.recent() == ("/exit", "/scan-web", "/help")
+    assert history.previous() == "/scan-web"

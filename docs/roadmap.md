@@ -26,7 +26,7 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - [x] Define the exact slash-command grammar
 - [x] Implement a command registry with aliases
 - [x] Implement guided prompts for commands that need context
-- [ ] Add command history and recall
+- [x] Add command history and recall
 - [x] Add help and command discovery
 - [ ] Add a session state model for workspace, mode, and last scan
 - [ ] Add a consistent notification/status area
