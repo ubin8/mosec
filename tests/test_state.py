@@ -32,6 +32,7 @@ def test_session_state_summary_lines_cover_last_scan() -> None:
     lines = state.summary_lines()
 
     assert "Session state" in lines[0]
+    assert "Status [INFO]: Ready" in lines
     assert "Workspace: ~/src" in lines
     assert "Current mode: web" in lines
     assert "Output format: sarif" in lines

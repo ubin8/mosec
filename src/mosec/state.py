@@ -10,6 +10,8 @@ class SessionState:
     workspace: str = "."
     scan_mode: str = "deep"
     output_format: str = "text"
+    status_text: str = "Ready"
+    status_kind: str = "info"
     last_scan_target: str | None = None
     last_scan_mode: str | None = None
     last_scan_format: str | None = None
@@ -29,6 +31,11 @@ class SessionState:
         self.last_scan_target = self.workspace
         self.last_scan_mode = self.scan_mode
         self.last_scan_format = self.output_format
+        self.set_status(f"Scan prepared for {self.workspace}", kind="success")
+
+    def set_status(self, text: str, *, kind: str = "info") -> None:
+        self.status_text = text.strip() or self.status_text
+        self.status_kind = kind.strip().lower() or self.status_kind
 
     def scan_prompt_specs(self) -> tuple[PromptSpec, ...]:
         return (
@@ -50,6 +57,7 @@ class SessionState:
     def summary_lines(self) -> tuple[str, ...]:
         lines = [
             "Session state",
+            f"Status [{self.status_kind.upper()}]: {self.status_text}",
             f"Workspace: {self.workspace}",
             f"Current mode: {self.scan_mode}",
             f"Output format: {self.output_format}",

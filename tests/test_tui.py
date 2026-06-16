@@ -10,6 +10,7 @@ def test_render_home_screen_contains_logo_and_navigation() -> None:
     assert "CLI-first application security scanner" not in screen
     assert "Scan | Rules | Reports | Mobile | Settings" not in screen
     assert "Type `s` for a quick scan hint" not in screen
+    assert "Status [INFO]: Ready" in screen
     assert ">" not in screen
     assert screen.startswith("\n")
 
@@ -36,6 +37,7 @@ def test_launch_home_screen_interactive_renders_prompt_dock(capsys) -> None:
     assert "Target: ./fixtures" in output
     assert "Mode: web" in output
     assert "Format: json" in output
+    assert "Status [SUCCESS]: Guided scan prepared for ./fixtures" in output
     lines = output.splitlines()
     assert lines.count("─" * 96) >= 2
 
@@ -48,6 +50,7 @@ def test_launch_home_screen_workspace_command_shows_session_state(capsys) -> Non
     output = capsys.readouterr().out
 
     assert exit_code == 0
+    assert "Status [INFO]: Ready" in output
     assert "Session state" in output
     assert "Workspace: ." in output
     assert "Current mode: deep" in output

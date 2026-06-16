@@ -65,10 +65,20 @@ def _separator(width: int) -> str:
     return "─" * max(width, 1)
 
 
-def _build_home_screen_lines(width: int | None = None, height: int | None = None) -> list[str]:
+def _center_line(line: str, width: int) -> str:
+    return line.center(width)[:width]
+
+
+def _build_home_screen_lines(
+    width: int | None = None,
+    height: int | None = None,
+    *,
+    state: SessionState | None = None,
+) -> list[str]:
     terminal_size = get_terminal_size((120, 36))
     width = width or terminal_size.columns
     height = height or terminal_size.lines
+    state = state or SessionState()
     art_lines = _render_side_by_side(
         load_mascot_art().splitlines(),
         load_brand_art().splitlines(),
@@ -78,6 +88,7 @@ def _build_home_screen_lines(width: int | None = None, height: int | None = None
     left_pad = max((width - art_width) // 2, 0)
 
     centered_art = [f"{' ' * left_pad}{line}" for line in art_lines]
+    status_line = _center_line(f"Status [{state.status_kind.upper()}]: {state.status_text}", width)
     prompt_dock_height = 3
     available_space = max(height - len(centered_art) - prompt_dock_height, 0)
     top_pad = min(max(height // 12, 2), available_space)
@@ -86,12 +97,14 @@ def _build_home_screen_lines(width: int | None = None, height: int | None = None
     lines: list[str] = []
     lines.extend("" for _ in range(top_pad))
     lines.extend(centered_art)
+    lines.append("")
+    lines.append(status_line)
     lines.extend("" for _ in range(gap_lines))
     return lines
 
 
-def render_home_screen(width: int | None = None, height: int | None = None) -> str:
-    return "\n".join(_build_home_screen_lines(width=width, height=height))
+def render_home_screen(width: int | None = None, height: int | None = None, *, state: SessionState | None = None) -> str:
+    return "\n".join(_build_home_screen_lines(width=width, height=height, state=state))
 
 
 def _write_prompt_dock(width: int) -> None:
@@ -152,6 +165,18 @@ def _collect_prompt_answers(
 
 def _session_state_lines(state: SessionState) -> tuple[str, ...]:
     return state.summary_lines()
+
+
+def _status_lines(state: SessionState) -> tuple[str, ...]:
+    return (
+        f"Status [{state.status_kind.upper()}]: {state.status_text}",
+        f"Workspace: {state.workspace} | Mode: {state.scan_mode} | Format: {state.output_format}",
+    )
+
+
+def _emit_status_lines(state: SessionState, output_func: Callable[[str], None]) -> None:
+    for line in _status_lines(state):
+        output_func(line)
 
 
 def _curses_read_line(stdscr: "curses.window", y: int, x: int, max_width: int) -> str:
@@ -219,7 +244,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         stdscr.erase()
         height, width = stdscr.getmaxyx()
 
-        lines = _build_home_screen_lines(width=width, height=height)
+        lines = _build_home_screen_lines(width=width, height=height, state=state)
         prompt_row = min(max(height // 2 - 2, 8), max(height - 3, 0))
 
         for row, line in enumerate(lines[:prompt_row]):
@@ -250,6 +275,24 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             stdscr.erase()
             stdscr.refresh()
             return 0
+        if outcome.kind == "help":
+            state.set_status("Help opened.")
+        elif outcome.kind == "exit":
+            state.set_status("Exiting MoSec.")
+        elif outcome.kind == "clear":
+            state.set_status("Screen cleared.")
+        elif outcome.kind == "invalid":
+            state.set_status("Invalid command syntax.", kind="warning")
+        elif outcome.kind == "unknown":
+            state.set_status(f"Unknown command: {choice}", kind="warning")
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
+            state.set_status("Workspace overview displayed.")
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
+            state.set_status("Recent commands shown.")
+        elif outcome.kind == "scan" and outcome.command is not None:
+            state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
+        elif outcome.kind == "wizard":
+            state.set_status("Guided scan wizard started.")
 
         message_row = min(prompt_row + 4, max(height - 1, 0))
         lines_to_render: tuple[str, ...] = outcome.message_lines
@@ -267,11 +310,16 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                     mode=answers.get("mode", state.scan_mode),
                     output_format=answers.get("format", state.output_format),
                 )
+                state.set_status(
+                    f"Guided scan prepared for {state.workspace}",
+                    kind="success",
+                )
             lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
         elif outcome.command and outcome.command.name == "/workspace":
             lines_to_render = _session_state_lines(state)
         elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
             state.scan_mode = outcome.command.name.removeprefix("/scan-")
+            state.set_status(f"Scan mode selected: {state.scan_mode}")
             state.last_command = outcome.command.name
 
         for offset, line in enumerate(lines_to_render):
@@ -306,7 +354,7 @@ def launch_home_screen(
         sys.stdout.flush()
         if curses is not None and sys.stdin.isatty() and sys.stdout.isatty():
             return _launch_home_screen_curses(registry, state)
-    output_func(render_home_screen(width=width, height=height))
+    output_func(render_home_screen(width=width, height=height, state=state))
     if not interactive:
         return 0
 
@@ -320,6 +368,8 @@ def launch_home_screen(
         output_func("Recent commands:")
         for item in history.recent():
             output_func(f"  {item}")
+        state.set_status("Recent commands shown.")
+        _emit_status_lines(state, output_func)
         return 0
     outcome = registry.execute(choice)
     sys.stdout.write("\n")
@@ -327,6 +377,26 @@ def launch_home_screen(
 
     if outcome.clear_screen:
         output_func("\033[2J\033[H")
+        state.set_status("Screen cleared.")
+    elif outcome.kind == "help":
+        state.set_status("Help opened.")
+    elif outcome.kind == "exit":
+        state.set_status("Exiting MoSec.")
+    elif outcome.kind == "clear":
+        state.set_status("Screen cleared.")
+    elif outcome.kind == "invalid":
+        state.set_status("Invalid command syntax.", kind="warning")
+    elif outcome.kind == "unknown":
+        state.set_status(f"Unknown command: {choice}", kind="warning")
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/workspace":
+        state.set_status("Workspace overview displayed.")
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/history":
+        state.set_status("Recent commands shown.")
+    elif outcome.kind == "scan" and outcome.command is not None:
+        state.set_status(f"Scan mode selected: {outcome.command.name.removeprefix('/scan-') or 'guided'}")
+    elif outcome.kind == "wizard":
+        state.set_status("Guided scan wizard started.")
+
     lines_to_render: tuple[str, ...] = outcome.message_lines
     if outcome.prompt_steps:
         prompt_steps = _guided_scan_prompt_steps(state) if outcome.command and outcome.command.name == "/scan" else outcome.prompt_steps
@@ -337,11 +407,14 @@ def launch_home_screen(
                 mode=answers.get("mode", state.scan_mode),
                 output_format=answers.get("format", state.output_format),
             )
+            state.set_status(f"Guided scan prepared for {state.workspace}", kind="success")
         lines_to_render = outcome.message_lines + _guided_scan_summary(answers)
     elif outcome.command and outcome.command.name == "/workspace":
         lines_to_render = _session_state_lines(state)
     elif outcome.command and outcome.command.name in {"/scan-quick", "/scan-deep", "/scan-web", "/scan-mobile", "/scan-secrets", "/scan-sca", "/scan-policy"}:
         state.scan_mode = outcome.command.name.removeprefix("/scan-")
+        state.set_status(f"Scan mode selected: {state.scan_mode}")
+    _emit_status_lines(state, output_func)
     for line in lines_to_render:
         output_func(line)
     if outcome.should_exit:
