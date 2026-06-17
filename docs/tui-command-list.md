@@ -36,6 +36,7 @@ This is the command contract for the interactive MoSec terminal shell. Commands 
 | `/policy-threshold` | `/threshold`, `/policy-fail-on` | Edit the active policy threshold | Ask for low, medium, high, critical, or none |
 | `/policy-branch` | `/branch-policy` | Review a branch-specific policy state | Ask for a branch name |
 | `/audit-trail` | `/audit` | Open the audit trail view | None |
+| `/manual-overrides` | `/overrides` | Open manual override management | None |
 | `/mobile` | `/android`, `/ios` | Jump to mobile analysis views | Choose platform |
 | `/workspace` | `/ws` | Show current workspace context | None |
 | `/history` | `/recent` | Show recent commands and scans | None |

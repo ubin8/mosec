@@ -14,6 +14,7 @@ from .rule_browser import (
 from .policy_views import render_policy_view_json, render_policy_view_lines, render_policy_view_sarif
 from .policy_views import render_policy_branch_view_json, render_policy_branch_view_lines, render_policy_branch_view_sarif
 from .audit_views import render_audit_trail_view_json, render_audit_trail_view_lines, render_audit_trail_view_sarif
+from .manual_override_views import render_manual_override_view_json, render_manual_override_view_lines, render_manual_override_view_sarif
 from .state import SessionState
 
 
@@ -174,6 +175,18 @@ def render_current_view_text(state: SessionState) -> str:
         lines.extend(render_audit_trail_view_lines(state).splitlines())
         return "\n".join(lines)
 
+    if state.current_view == "manual-overrides":
+        lines = [
+            f"view: {state.current_view}",
+            f"title: {state.current_view_title()}",
+            f"workspace: {state.workspace}",
+            f"mode: {state.scan_mode}",
+            f"format: {state.output_format}",
+        ]
+        lines.extend(state.summary_lines())
+        lines.extend(render_manual_override_view_lines(state).splitlines())
+        return "\n".join(lines)
+
     if state.current_view == "rules":
         lines = [
             f"view: {state.current_view}",
@@ -229,9 +242,13 @@ def render_current_view_json(state: SessionState) -> str:
     current_view_findings = state.current_view_findings()
     current_view_rules = state.current_view_rules()
     current_view_audit_entries = state.current_view_audit_entries()
+    current_view_manual_override_entries = state.current_view_manual_override_entries()
+    current_view_manual_override_findings = state.current_view_manual_override_findings()
     current_view_count = len(current_view_findings) if current_view_findings else len(current_view_rules)
     if current_view_count == 0 and current_view_audit_entries:
         current_view_count = len(current_view_audit_entries)
+    if current_view_count == 0 and current_view_manual_override_entries:
+        current_view_count = len(current_view_manual_override_entries)
     payload = {
         "view": {
             "id": state.current_view,
@@ -259,6 +276,8 @@ def render_current_view_json(state: SessionState) -> str:
             "rules": [rule.to_dict() for rule in current_view_rules],
             "selected_rule": None if selected_rule is None else selected_rule.to_dict(),
             "audit_entries": [entry.to_dict() for entry in current_view_audit_entries],
+            "manual_override_entries": [entry.to_dict() for entry in current_view_manual_override_entries],
+            "manual_override_findings": [finding.to_dict() for finding in current_view_manual_override_findings],
         },
     }
     if state.current_view == "rule-detail":
@@ -283,6 +302,8 @@ def render_current_view_json(state: SessionState) -> str:
         payload["policy_branch_review"] = json.loads(render_policy_branch_view_json(state))
     elif state.current_view == "audit-trail":
         payload["audit_trail"] = json.loads(render_audit_trail_view_json(state))["audit_trail"]
+    elif state.current_view == "manual-overrides":
+        payload["manual_overrides"] = json.loads(render_manual_override_view_json(state))["manual_overrides"]
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
@@ -305,6 +326,8 @@ def render_current_view_sarif(state: SessionState) -> str:
         return render_policy_branch_view_sarif(state)
     if state.current_view == "audit-trail":
         return render_audit_trail_view_sarif(state)
+    if state.current_view == "manual-overrides":
+        return render_manual_override_view_sarif(state)
 
     findings = state.current_view_findings()
     selected = state.current_view_selected_finding()

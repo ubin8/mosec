@@ -318,6 +318,7 @@ class SessionState:
             "reports": "Reports",
             "policy": "Policy",
             "policy-branch": "Branch-specific policy review",
+            "manual-overrides": "Manual override management",
             "mobile": "Mobile",
             "policy-threshold": "Policy threshold",
             "settings": "Settings",
@@ -365,6 +366,20 @@ class SessionState:
         if self.current_view == "audit-trail":
             return list(self.audit_log)
         return []
+
+    def current_view_manual_override_entries(self) -> list[AuditEntry]:
+        if self.current_view != "manual-overrides":
+            return []
+        return [entry for entry in self.audit_log if entry.action == "manual_override"]
+
+    def current_view_manual_override_findings(self) -> list["Finding"]:
+        if self.current_view != "manual-overrides":
+            return []
+        findings: list["Finding"] = []
+        for finding in [*self.findings, *self.baseline_findings, *self.suppressed_findings]:
+            if finding.metadata.get("manual_override_decision") is not None:
+                findings.append(finding)
+        return findings
 
     def update_selected_finding_triage(
         self,

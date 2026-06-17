@@ -144,6 +144,19 @@ def test_command_registry_includes_audit_trail_view() -> None:
     assert "Audit trail opened." in audit_result.message_lines[0]
 
 
+def test_command_registry_includes_manual_override_management() -> None:
+    registry = build_default_command_registry()
+
+    overrides_command = registry.resolve("/overrides")
+    overrides_result = registry.execute("/manual-overrides")
+
+    assert overrides_command is not None
+    assert overrides_command.name == "/manual-overrides"
+    assert overrides_command.implemented is True
+    assert overrides_result.kind == "workspace"
+    assert "Manual override management opened." in overrides_result.message_lines[0]
+
+
 def test_command_registry_includes_rules_browser() -> None:
     registry = build_default_command_registry()
 

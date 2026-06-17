@@ -471,6 +471,19 @@ def test_launch_home_screen_audit_trail_shows_recorded_entries(capsys) -> None:
     assert "Status [SUCCESS]: Audit trail opened." in output
 
 
+def test_launch_home_screen_manual_override_management_shows_empty_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/manual-overrides"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Manual override management" in output
+    assert "No manual override entries recorded yet." in output
+    assert "Status [SUCCESS]: Manual override management opened." in output
+
+
 def test_rule_browser_workspace_selection_moves_between_packs() -> None:
     from mosec.rule_browser import build_builtin_rule_pack
     from mosec.findings import Confidence

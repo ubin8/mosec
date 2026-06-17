@@ -19,6 +19,7 @@ from .taint import TaintLineage, TaintState, assignment_propagation_metadata, bu
 from .sources import AUTH_CONTEXT_SOURCE_MARKERS, AUTH_GUARD_MARKERS, BODY_SOURCE_MARKERS, COOKIE_SOURCE_MARKERS, HEADER_SOURCE_MARKERS, QUERY_SOURCE_MARKERS, ROLE_GUARD_MARKERS, SourceKind, USER_INPUT_SOURCE_KINDS, is_auth_context_reference, is_auth_guard_reference, is_body_source_reference, is_cookie_source_reference, is_header_source_reference, is_query_source_reference, is_role_guard_reference, is_user_input_source_kind
 from .policy_views import render_policy_branch_view_json, render_policy_branch_view_lines, render_policy_branch_view_sarif, render_policy_view_json, render_policy_view_lines, render_policy_view_sarif
 from .audit_views import render_audit_trail_view_json, render_audit_trail_view_lines, render_audit_trail_view_sarif
+from .manual_override_views import render_manual_override_view_json, render_manual_override_view_lines, render_manual_override_view_sarif
 from .reporting import render_current_view_json, render_current_view_sarif, render_current_view_text
 from .rule_browser import (
     build_builtin_rule_packs,

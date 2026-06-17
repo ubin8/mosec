@@ -321,6 +321,15 @@ class CommandRegistry:
                     "Inspect recorded command, scan, policy, and review actions.",
                 ),
             )
+        if command.name == "/manual-overrides":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=(
+                    "Manual override management opened.",
+                    "Inspect overrides that keep findings active or suppressed.",
+                ),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -625,6 +634,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/audit",),
                 summary="Open the audit trail view",
                 description="Inspect recorded command, scan, policy, and review actions.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/manual-overrides",
+                aliases=("/overrides",),
+                summary="Open manual override management",
+                description="Inspect manual overrides that keep findings active or suppressed.",
                 category="Analysis",
                 implemented=True,
             ),

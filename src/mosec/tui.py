@@ -423,6 +423,12 @@ def _apply_audit_trail_workspace_change(state: SessionState) -> tuple[str, ...]:
     return tuple(render_current_view_text(state).splitlines())
 
 
+def _apply_manual_override_workspace_change(state: SessionState) -> tuple[str, ...]:
+    state.set_current_view("manual-overrides")
+    state.set_status("Manual override management opened.", kind="success")
+    return tuple(render_current_view_text(state).splitlines())
+
+
 def _apply_rule_browser_workspace_change(
     state: SessionState,
     command_name: str,
@@ -761,6 +767,8 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             lines_to_render = _suppression_review_view_lines(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/audit-trail":
             lines_to_render = _apply_audit_trail_workspace_change(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/manual-overrides":
+            lines_to_render = _apply_manual_override_workspace_change(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/rules", "/rule-detail"}:
             lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
@@ -768,9 +776,12 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             "/mobile",
             "/settings",
             "/audit-trail",
+            "/manual-overrides",
         }:
             if outcome.command.name == "/audit-trail":
                 lines_to_render = _apply_audit_trail_workspace_change(state)
+            elif outcome.command.name == "/manual-overrides":
+                lines_to_render = _apply_manual_override_workspace_change(state)
             else:
                 state.set_current_view(outcome.command.name.removeprefix("/"))
                 state.set_status(f"{state.current_view_title()} opened.")
@@ -1089,9 +1100,12 @@ def launch_home_screen(
         "/mobile",
         "/settings",
         "/audit-trail",
+        "/manual-overrides",
     }:
         if outcome.command.name == "/audit-trail":
             lines_to_render = _apply_audit_trail_workspace_change(state)
+        elif outcome.command.name == "/manual-overrides":
+            lines_to_render = _apply_manual_override_workspace_change(state)
         else:
             state.set_current_view(outcome.command.name.removeprefix("/"))
             state.set_status(f"{state.current_view_title()} opened.")
@@ -1197,9 +1211,12 @@ def launch_home_screen(
         "/mobile",
         "/settings",
         "/audit-trail",
+        "/manual-overrides",
     }:
         if outcome.command.name == "/audit-trail":
             lines_to_render = _apply_audit_trail_workspace_change(state)
+        elif outcome.command.name == "/manual-overrides":
+            lines_to_render = _apply_manual_override_workspace_change(state)
         else:
             state.set_current_view(outcome.command.name.removeprefix("/"))
             state.set_status(f"{state.current_view_title()} opened.")

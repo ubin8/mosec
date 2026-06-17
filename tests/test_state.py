@@ -86,6 +86,14 @@ def test_session_state_records_audit_entries() -> None:
     assert state.audit_log[1].metadata["mode"] == "web"
 
 
+def test_session_state_titles_manual_override_management() -> None:
+    state = SessionState()
+
+    state.set_current_view("manual-overrides")
+
+    assert state.current_view_title() == "Manual override management"
+
+
 def test_session_state_exposes_builtin_rule_browser() -> None:
     state = SessionState()
 

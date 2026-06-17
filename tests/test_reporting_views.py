@@ -199,3 +199,57 @@ def test_render_current_view_audit_trail_exports_audit_entries() -> None:
     assert "scan workspace:./fixtures" in text
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "audit-trail"
     assert sarif["runs"][0]["invocations"][0]["properties"]["audit_entries"] == 2
+
+
+def test_render_current_view_manual_override_exports_override_state(tmp_path: Path) -> None:
+    state = SessionState()
+    state.store_scan_results(
+        [
+            _finding(tmp_path, "active-1", "RULE-ACTIVE", 1, Severity.HIGH, FindingStatus.NEW),
+        ],
+        suppressed_findings=[
+            _finding(tmp_path, "suppressed-1", "RULE-SUPPRESSED", 2, Severity.LOW, FindingStatus.SUPPRESSED),
+        ],
+    )
+    state.audit_log = [
+        AuditEntry(
+            action="manual_override",
+            subject_type="finding",
+            subject_id="active-1",
+            decision="active",
+            reason="keep visible",
+            actor="reviewer",
+            metadata={"rule_id": "RULE-ACTIVE", "path": "app.py", "start_line": 1},
+        ),
+        AuditEntry(
+            action="manual_override",
+            subject_type="finding",
+            subject_id="suppressed-1",
+            decision="suppressed",
+            reason="hide from active review",
+            actor="reviewer",
+            metadata={"rule_id": "RULE-SUPPRESSED", "path": "app.py", "start_line": 2},
+        ),
+    ]
+    state.findings[0].metadata["manual_override_decision"] = "active"
+    state.findings[0].metadata["manual_override_reason"] = "keep visible"
+    state.suppressed_findings[0].metadata["manual_override_decision"] = "suppressed"
+    state.suppressed_findings[0].metadata["manual_override_reason"] = "hide from active review"
+    state.set_current_view("manual-overrides")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "manual-overrides"
+    assert payload["view"]["title"] == "Manual override management"
+    assert payload["manual_overrides"]["count"] == 2
+    assert payload["manual_overrides"]["active"] == 1
+    assert payload["manual_overrides"]["suppressed"] == 1
+    assert payload["current_view"]["manual_override_entries"][0]["action"] == "manual_override"
+    assert payload["current_view"]["manual_override_findings"][0]["id"] == "active-1"
+    assert "Manual override management" in text
+    assert "Manual overrides: 2" in text
+    assert "Affected findings: 2" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "manual-overrides"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["manual_override_count"] == 2
