@@ -406,6 +406,38 @@ def test_launch_home_screen_rule_detail_shows_selected_rule(capsys) -> None:
     assert "Status [SUCCESS]: Rule detail opened for SEC-SECRET-001." in output
 
 
+def test_launch_home_screen_policy_editor_shows_threshold_state(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/policy"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Policy editor" in output
+    assert "Current threshold: none" in output
+    assert "Supported thresholds: low | medium | high | critical | none" in output
+    assert "Status [SUCCESS]: Policy editor opened." in output
+
+
+def test_launch_home_screen_policy_threshold_updates_state(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/policy-threshold", "high"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert any(prompt.startswith("Policy threshold") for prompt in prompts[1:])
+    assert "Policy threshold set to high." in output
+    assert "Current threshold: high" in output
+    assert "Effective threshold: high" in output
+
+
 def test_rule_browser_workspace_selection_moves_between_packs() -> None:
     from mosec.rule_browser import build_builtin_rule_pack
     from mosec.findings import Confidence

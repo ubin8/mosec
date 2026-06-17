@@ -11,6 +11,7 @@ from .rule_browser import (
     render_rule_detail_lines,
     render_rule_detail_sarif,
 )
+from .policy_views import render_policy_view_json, render_policy_view_lines, render_policy_view_sarif
 from .state import SessionState
 
 
@@ -135,6 +136,18 @@ def render_current_view_text(state: SessionState) -> str:
         )
         return "\n".join(lines)
 
+    if state.current_view == "policy":
+        lines = [
+            f"view: {state.current_view}",
+            f"title: {state.current_view_title()}",
+            f"workspace: {state.workspace}",
+            f"mode: {state.scan_mode}",
+            f"format: {state.output_format}",
+        ]
+        lines.extend(state.summary_lines())
+        lines.extend(render_policy_view_lines(state).splitlines())
+        return "\n".join(lines)
+
     if state.current_view == "rules":
         lines = [
             f"view: {state.current_view}",
@@ -233,6 +246,8 @@ def render_current_view_json(state: SessionState) -> str:
                 selected_rule_index=state.selected_rule_index,
             )
         )
+    elif state.current_view == "policy":
+        payload["policy_editor"] = json.loads(render_policy_view_json(state))
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
@@ -249,6 +264,8 @@ def render_current_view_sarif(state: SessionState) -> str:
             selected_pack_index=state.selected_rule_pack_index,
             selected_rule_index=state.selected_rule_index,
         )
+    if state.current_view == "policy":
+        return render_policy_view_sarif(state)
 
     findings = state.current_view_findings()
     selected = state.current_view_selected_finding()

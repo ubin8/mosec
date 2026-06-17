@@ -285,7 +285,25 @@ class CommandRegistry:
                     PromptSpec(key="pack", question="Rule pack", default="1"),
                 ),
             )
-        if command.name in {"/findings", "/finding-detail", "/reports", "/policy", "/mobile", "/workspace", "/history", "/settings"}:
+        if command.name == "/policy":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=(
+                    "Policy editor opened.",
+                    "Inspect the active threshold, branch context, and overrides.",
+                ),
+            )
+        if command.name == "/policy-threshold":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Set the policy threshold.",),
+                prompt_steps=(
+                    PromptSpec(key="threshold", question="Policy threshold", default="none", choices=("none", "low", "medium", "high", "critical")),
+                ),
+            )
+        if command.name in {"/findings", "/finding-detail", "/reports", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
                 kind="workspace",
@@ -566,7 +584,15 @@ def build_default_command_registry() -> CommandRegistry:
                 summary="Open policy settings",
                 description="Inspect policy thresholds and branch behavior.",
                 category="Analysis",
-                implemented=False,
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/policy-threshold",
+                aliases=("/threshold", "/policy-fail-on"),
+                summary="Edit the policy threshold",
+                description="Set the active severity threshold used by policy gates.",
+                category="Analysis",
+                implemented=True,
             ),
             CommandSpec(
                 name="/mobile",

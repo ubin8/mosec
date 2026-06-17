@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from .commands import PromptSpec, normalize_command_text
 from .findings import TriageStatus
+from .policy import parse_fail_on_threshold, resolve_policy_threshold
 from .rule_browser import build_builtin_rule_packs, resolve_rule_pack_index, rule_pack_labels
 from .rules import RulePack
 
@@ -31,6 +32,10 @@ class SessionState:
     selected_suppressed_finding_index: int = 0
     findings_search_query: str | None = None
     findings_severity_filters: list[str] = field(default_factory=list)
+    policy_threshold: str | None = None
+    policy_branch: str | None = None
+    branch_fail_on: dict[str, str] = field(default_factory=dict)
+    policy_fail_on_explicit: bool = False
     last_scan_target: str | None = None
     last_scan_mode: str | None = None
     last_scan_format: str | None = None
@@ -232,6 +237,40 @@ class SessionState:
     def available_rule_pack_labels(self) -> tuple[str, ...]:
         return tuple(rule_pack_labels(self.rule_packs))
 
+    def set_policy_threshold(self, threshold: str | None, *, explicit: bool = True) -> bool:
+        normalized: str | None
+        if threshold is None:
+            normalized = None
+        else:
+            cleaned = threshold.strip().lower()
+            if not cleaned or cleaned == "none":
+                normalized = None
+            else:
+                normalized = parse_fail_on_threshold(cleaned).value
+        changed = normalized != self.policy_threshold or explicit != self.policy_fail_on_explicit
+        self.policy_threshold = normalized
+        self.policy_fail_on_explicit = explicit and normalized is not None
+        return changed
+
+    def set_policy_branch(self, branch: str | None) -> bool:
+        normalized = branch.strip() if branch is not None else None
+        if normalized == "":
+            normalized = None
+        changed = normalized != self.policy_branch
+        self.policy_branch = normalized
+        return changed
+
+    def effective_policy_threshold(self) -> str | None:
+        return resolve_policy_threshold(
+            self.policy_threshold,
+            self.policy_branch,
+            self.branch_fail_on,
+            self.policy_fail_on_explicit,
+        )
+
+    def policy_effective_threshold(self) -> str | None:
+        return self.effective_policy_threshold()
+
     def set_current_view(self, view: str) -> None:
         normalized = view.strip().lower()
         if normalized:
@@ -252,6 +291,7 @@ class SessionState:
             "reports": "Reports",
             "policy": "Policy",
             "mobile": "Mobile",
+            "policy-threshold": "Policy threshold",
             "settings": "Settings",
         }
         return titles.get(self.current_view, self.current_view.replace("-", " ").title())

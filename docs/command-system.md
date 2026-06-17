@@ -149,6 +149,7 @@ The registry should store:
 - `/rule-pack-prev`
 - `/rule-pack-select`
 - `/policy`
+- `/policy-threshold`
 - `/mobile`
 
 ### Configuration

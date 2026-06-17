@@ -33,6 +33,7 @@ This is the command contract for the interactive MoSec terminal shell. Commands 
 | `/rule-pack-prev` | `/rule-prev-pack` | Select the previous rule pack | None |
 | `/rule-pack-select` | `/rule-select-pack` | Select a rule pack by index or name | Ask for a pack identifier |
 | `/policy` | `/gates` | Open policy and threshold settings | Choose branch or workspace policy |
+| `/policy-threshold` | `/threshold`, `/policy-fail-on` | Edit the active policy threshold | Ask for low, medium, high, critical, or none |
 | `/mobile` | `/android`, `/ios` | Jump to mobile analysis views | Choose platform |
 | `/workspace` | `/ws` | Show current workspace context | None |
 | `/history` | `/recent` | Show recent commands and scans | None |

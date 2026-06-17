@@ -45,6 +45,25 @@ def test_session_state_summary_lines_cover_last_scan() -> None:
     assert "Last scan: none" in lines
 
 
+def test_session_state_tracks_policy_thresholds() -> None:
+    state = SessionState(branch_fail_on={"main": "critical"})
+
+    assert state.policy_threshold is None
+    assert state.policy_effective_threshold() is None
+
+    state.set_policy_threshold("high")
+    state.set_policy_branch("main")
+
+    assert state.policy_threshold == "high"
+    assert state.policy_branch == "main"
+    assert state.policy_effective_threshold() == "high"
+
+    state.set_policy_threshold(None)
+
+    assert state.policy_threshold is None
+    assert state.policy_effective_threshold() == "critical"
+
+
 def test_session_state_exposes_builtin_rule_browser() -> None:
     state = SessionState()
 

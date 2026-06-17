@@ -105,6 +105,25 @@ def test_command_registry_includes_rule_detail_view() -> None:
     assert "Rule detail opened." in detail_result.message_lines[0]
 
 
+def test_command_registry_includes_policy_threshold_editor() -> None:
+    registry = build_default_command_registry()
+
+    policy_command = registry.resolve("/gates")
+    threshold_command = registry.resolve("/policy-fail-on")
+    policy_result = registry.execute("/policy")
+    threshold_result = registry.execute("/policy-threshold")
+
+    assert policy_command is not None
+    assert policy_command.name == "/policy"
+    assert policy_command.implemented is True
+    assert threshold_command is not None
+    assert threshold_command.name == "/policy-threshold"
+    assert threshold_command.implemented is True
+    assert policy_result.kind == "workspace"
+    assert threshold_result.kind == "workspace"
+    assert threshold_result.prompt_steps[0].key == "threshold"
+
+
 def test_command_registry_includes_rules_browser() -> None:
     registry = build_default_command_registry()
 

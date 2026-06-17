@@ -116,3 +116,24 @@ def test_render_current_view_rule_detail_exports_selected_rule() -> None:
     assert "Rule ID: SEC-SECRET-001" in text
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rule-detail"
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_title"] == "Rule detail"
+
+
+def test_render_current_view_policy_exports_editor_state() -> None:
+    state = SessionState(branch_fail_on={"main": "critical"})
+    state.set_policy_branch("main")
+    state.set_policy_threshold("high")
+    state.set_current_view("policy")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "policy"
+    assert payload["view"]["title"] == "Policy"
+    assert payload["policy_editor"]["policy"]["threshold"] == "high"
+    assert payload["policy_editor"]["policy"]["effective_threshold"] == "high"
+    assert "Policy editor" in text
+    assert "Current threshold: high" in text
+    assert "Effective threshold: high" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "policy"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["policy_threshold"] == "high"
