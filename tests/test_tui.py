@@ -438,6 +438,25 @@ def test_launch_home_screen_policy_threshold_updates_state(capsys) -> None:
     assert "Effective threshold: high" in output
 
 
+def test_launch_home_screen_policy_branch_shows_branch_review(capsys) -> None:
+    prompts: list[str] = []
+    responses = iter(["/policy-branch", "main"])
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert any(prompt.startswith("Branch name") for prompt in prompts[1:])
+    assert "Branch-specific policy review" in output
+    assert "Current branch: main" in output
+    assert "Branch override active" in output
+    assert "Status [SUCCESS]: Branch policy review opened for main." in output
+
+
 def test_rule_browser_workspace_selection_moves_between_packs() -> None:
     from mosec.rule_browser import build_builtin_rule_pack
     from mosec.findings import Confidence

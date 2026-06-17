@@ -290,6 +290,7 @@ class SessionState:
             "history": "History",
             "reports": "Reports",
             "policy": "Policy",
+            "policy-branch": "Branch-specific policy review",
             "mobile": "Mobile",
             "policy-threshold": "Policy threshold",
             "settings": "Settings",

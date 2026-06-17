@@ -137,3 +137,26 @@ def test_render_current_view_policy_exports_editor_state() -> None:
     assert "Effective threshold: high" in text
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "policy"
     assert sarif["runs"][0]["invocations"][0]["properties"]["policy_threshold"] == "high"
+
+
+def test_render_current_view_policy_branch_exports_branch_state() -> None:
+    state = SessionState(branch_fail_on={"main": "critical", "release": "high"})
+    state.set_policy_branch("main")
+    state.set_policy_threshold(None)
+    state.set_current_view("policy-branch")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "policy-branch"
+    assert payload["view"]["title"] == "Branch-specific policy review"
+    assert payload["policy_branch_review"]["policy_branch_review"]["branch"] == "main"
+    assert payload["policy_branch_review"]["policy_branch_review"]["branch_threshold"] == "critical"
+    assert payload["policy_branch_review"]["policy_branch_review"]["effective_threshold"] == "critical"
+    assert "Branch-specific policy review" in text
+    assert "Current branch: main" in text
+    assert "Branch threshold: critical" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "policy-branch"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["policy_branch"] == "main"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["policy_branch_threshold"] == "critical"

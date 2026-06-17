@@ -303,6 +303,15 @@ class CommandRegistry:
                     PromptSpec(key="threshold", question="Policy threshold", default="none", choices=("none", "low", "medium", "high", "critical")),
                 ),
             )
+        if command.name == "/policy-branch":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=("Review a specific branch policy state.",),
+                prompt_steps=(
+                    PromptSpec(key="branch", question="Branch name", default="main"),
+                ),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -591,6 +600,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/threshold", "/policy-fail-on"),
                 summary="Edit the policy threshold",
                 description="Set the active severity threshold used by policy gates.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/policy-branch",
+                aliases=("/branch-policy",),
+                summary="Review a branch policy",
+                description="Inspect the branch-specific policy threshold and overrides.",
                 category="Analysis",
                 implemented=True,
             ),

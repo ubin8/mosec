@@ -64,7 +64,7 @@ MoSec is a TUI-first application security workbench. The terminal UI is the prim
 - [x] Rule pack selection
 - [x] Rule detail view
 - [x] Policy threshold editor
-- [ ] Branch-specific policy review
+- [x] Branch-specific policy review
 - [ ] Audit trail view
 - [ ] Manual override management
 - [ ] Suppression expiry handling in the UI

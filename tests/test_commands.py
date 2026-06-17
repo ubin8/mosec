@@ -110,8 +110,10 @@ def test_command_registry_includes_policy_threshold_editor() -> None:
 
     policy_command = registry.resolve("/gates")
     threshold_command = registry.resolve("/policy-fail-on")
+    branch_command = registry.resolve("/branch-policy")
     policy_result = registry.execute("/policy")
     threshold_result = registry.execute("/policy-threshold")
+    branch_result = registry.execute("/policy-branch")
 
     assert policy_command is not None
     assert policy_command.name == "/policy"
@@ -119,9 +121,14 @@ def test_command_registry_includes_policy_threshold_editor() -> None:
     assert threshold_command is not None
     assert threshold_command.name == "/policy-threshold"
     assert threshold_command.implemented is True
+    assert branch_command is not None
+    assert branch_command.name == "/policy-branch"
+    assert branch_command.implemented is True
     assert policy_result.kind == "workspace"
     assert threshold_result.kind == "workspace"
     assert threshold_result.prompt_steps[0].key == "threshold"
+    assert branch_result.kind == "workspace"
+    assert branch_result.prompt_steps[0].key == "branch"
 
 
 def test_command_registry_includes_rules_browser() -> None:

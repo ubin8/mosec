@@ -62,6 +62,15 @@ def test_session_state_tracks_policy_thresholds() -> None:
 
     assert state.policy_threshold is None
     assert state.policy_effective_threshold() == "critical"
+    assert state.current_view_title() == "Home"
+
+
+def test_session_state_titles_branch_policy_review() -> None:
+    state = SessionState()
+
+    state.set_current_view("policy-branch")
+
+    assert state.current_view_title() == "Branch-specific policy review"
 
 
 def test_session_state_exposes_builtin_rule_browser() -> None:

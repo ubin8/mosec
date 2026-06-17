@@ -406,6 +406,17 @@ def _policy_threshold_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...
     )
 
 
+def _policy_branch_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...]:
+    default = state.policy_branch or "main"
+    return (
+        PromptSpec(
+            key="branch",
+            question="Branch name",
+            default=default,
+        ),
+    )
+
+
 def _apply_rule_browser_workspace_change(
     state: SessionState,
     command_name: str,
@@ -475,6 +486,19 @@ def _apply_policy_workspace_change(
             return (f"Unsupported policy threshold: {threshold}",)
         state.set_current_view("policy")
         state.set_status(f"Policy threshold set to {state.policy_threshold or 'none'}.", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
+    if command_name == "/policy-branch":
+        branch = answers.get("branch", "").strip()
+        if not branch:
+            state.set_status("No branch provided.", kind="warning")
+            return ("No branch provided.",)
+        state.set_policy_branch(branch)
+        state.set_current_view("policy-branch")
+        threshold = state.branch_fail_on.get(state.policy_branch) if state.policy_branch else None
+        status = f"Branch policy review opened for {state.policy_branch}."
+        if threshold is not None:
+            status += f" Threshold override: {threshold}."
+        state.set_status(status, kind="success")
         return tuple(render_current_view_text(state).splitlines())
     return ()
 
@@ -738,7 +762,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
         }:
             state.set_current_view(outcome.command.name.removeprefix("/"))
             state.set_status(f"{state.current_view_title()} opened.")
-        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold"}:
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
             lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/triage-in-review",
@@ -888,6 +912,8 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
                 if outcome.command and outcome.command.name == "/rule-pack-select"
                 else _policy_threshold_prompt_steps(state)
                 if outcome.command and outcome.command.name == "/policy-threshold"
+                else _policy_branch_prompt_steps(state)
+                if outcome.command and outcome.command.name == "/policy-branch"
                 else outcome.prompt_steps
             )
             answers = _curses_collect_prompt_answers(
@@ -1053,7 +1079,7 @@ def launch_home_screen(
             f"{state.current_view_title()} workspace",
             f"Current view: {state.current_view}",
         )
-    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold"}:
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
         lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
     elif outcome.kind == "scan" and outcome.command is not None:
         if outcome.command.name == "/scan-compare":
@@ -1157,7 +1183,7 @@ def launch_home_screen(
             f"{state.current_view_title()} workspace",
             f"Current view: {state.current_view}",
         )
-    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold"}:
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
         lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/triage-in-review",
@@ -1180,6 +1206,8 @@ def launch_home_screen(
             if outcome.command and outcome.command.name == "/rule-pack-select"
             else _policy_threshold_prompt_steps(state)
             if outcome.command and outcome.command.name == "/policy-threshold"
+            else _policy_branch_prompt_steps(state)
+            if outcome.command and outcome.command.name == "/policy-branch"
             else outcome.prompt_steps
         )
         answers = _collect_prompt_answers(prompt_steps, input_func=input_func)
@@ -1198,6 +1226,8 @@ def launch_home_screen(
         elif outcome.command and outcome.command.name == "/rule-pack-select":
             lines_to_render = outcome.message_lines + _apply_rule_browser_workspace_change(state, outcome.command.name, answers)
         elif outcome.command and outcome.command.name == "/policy-threshold":
+            lines_to_render = outcome.message_lines + _apply_policy_workspace_change(state, outcome.command.name, answers)
+        elif outcome.command and outcome.command.name == "/policy-branch":
             lines_to_render = outcome.message_lines + _apply_policy_workspace_change(state, outcome.command.name, answers)
         elif outcome.command and outcome.command.name in {
             "/triage-in-review",
