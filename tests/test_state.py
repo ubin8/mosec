@@ -73,6 +73,19 @@ def test_session_state_titles_branch_policy_review() -> None:
     assert state.current_view_title() == "Branch-specific policy review"
 
 
+def test_session_state_records_audit_entries() -> None:
+    state = SessionState()
+
+    state.remember_command("/audit-trail")
+    state.record_scan(target="./fixtures", mode="web", output_format="json")
+
+    assert len(state.audit_log) == 2
+    assert state.audit_log[0].action == "command"
+    assert state.audit_log[0].subject_id == "/audit-trail"
+    assert state.audit_log[1].action == "scan"
+    assert state.audit_log[1].metadata["mode"] == "web"
+
+
 def test_session_state_exposes_builtin_rule_browser() -> None:
     state = SessionState()
 

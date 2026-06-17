@@ -457,6 +457,20 @@ def test_launch_home_screen_policy_branch_shows_branch_review(capsys) -> None:
     assert "Status [SUCCESS]: Branch policy review opened for main." in output
 
 
+def test_launch_home_screen_audit_trail_shows_recorded_entries(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/audit-trail"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Audit trail" in output
+    assert "Audit entries: 1" in output
+    assert "command command:/audit-trail" in output
+    assert "Status [SUCCESS]: Audit trail opened." in output
+
+
 def test_rule_browser_workspace_selection_moves_between_packs() -> None:
     from mosec.rule_browser import build_builtin_rule_pack
     from mosec.findings import Confidence

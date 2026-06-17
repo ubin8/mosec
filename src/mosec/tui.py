@@ -417,6 +417,12 @@ def _policy_branch_prompt_steps(state: SessionState) -> tuple[PromptSpec, ...]:
     )
 
 
+def _apply_audit_trail_workspace_change(state: SessionState) -> tuple[str, ...]:
+    state.set_current_view("audit-trail")
+    state.set_status("Audit trail opened.", kind="success")
+    return tuple(render_current_view_text(state).splitlines())
+
+
 def _apply_rule_browser_workspace_change(
     state: SessionState,
     command_name: str,
@@ -753,15 +759,25 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_current_view("suppression-review")
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/audit-trail":
+            lines_to_render = _apply_audit_trail_workspace_change(state)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/rules", "/rule-detail"}:
             lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/reports",
             "/mobile",
             "/settings",
+            "/audit-trail",
         }:
-            state.set_current_view(outcome.command.name.removeprefix("/"))
-            state.set_status(f"{state.current_view_title()} opened.")
+            if outcome.command.name == "/audit-trail":
+                lines_to_render = _apply_audit_trail_workspace_change(state)
+            else:
+                state.set_current_view(outcome.command.name.removeprefix("/"))
+                state.set_status(f"{state.current_view_title()} opened.")
+                lines_to_render = (
+                    f"{state.current_view_title()} workspace",
+                    f"Current view: {state.current_view}",
+                )
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
             lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
@@ -1072,13 +1088,17 @@ def launch_home_screen(
         "/reports",
         "/mobile",
         "/settings",
+        "/audit-trail",
     }:
-        state.set_current_view(outcome.command.name.removeprefix("/"))
-        state.set_status(f"{state.current_view_title()} opened.")
-        lines_to_render = (
-            f"{state.current_view_title()} workspace",
-            f"Current view: {state.current_view}",
-        )
+        if outcome.command.name == "/audit-trail":
+            lines_to_render = _apply_audit_trail_workspace_change(state)
+        else:
+            state.set_current_view(outcome.command.name.removeprefix("/"))
+            state.set_status(f"{state.current_view_title()} opened.")
+            lines_to_render = (
+                f"{state.current_view_title()} workspace",
+                f"Current view: {state.current_view}",
+            )
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
         lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
     elif outcome.kind == "scan" and outcome.command is not None:
@@ -1176,13 +1196,17 @@ def launch_home_screen(
         "/reports",
         "/mobile",
         "/settings",
+        "/audit-trail",
     }:
-        state.set_current_view(outcome.command.name.removeprefix("/"))
-        state.set_status(f"{state.current_view_title()} opened.")
-        lines_to_render = (
-            f"{state.current_view_title()} workspace",
-            f"Current view: {state.current_view}",
-        )
+        if outcome.command.name == "/audit-trail":
+            lines_to_render = _apply_audit_trail_workspace_change(state)
+        else:
+            state.set_current_view(outcome.command.name.removeprefix("/"))
+            state.set_status(f"{state.current_view_title()} opened.")
+            lines_to_render = (
+                f"{state.current_view_title()} workspace",
+                f"Current view: {state.current_view}",
+            )
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/policy", "/policy-threshold", "/policy-branch"}:
         lines_to_render = _apply_policy_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {

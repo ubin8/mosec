@@ -131,6 +131,19 @@ def test_command_registry_includes_policy_threshold_editor() -> None:
     assert branch_result.prompt_steps[0].key == "branch"
 
 
+def test_command_registry_includes_audit_trail_view() -> None:
+    registry = build_default_command_registry()
+
+    audit_command = registry.resolve("/audit")
+    audit_result = registry.execute("/audit-trail")
+
+    assert audit_command is not None
+    assert audit_command.name == "/audit-trail"
+    assert audit_command.implemented is True
+    assert audit_result.kind == "workspace"
+    assert "Audit trail opened." in audit_result.message_lines[0]
+
+
 def test_command_registry_includes_rules_browser() -> None:
     registry = build_default_command_registry()
 

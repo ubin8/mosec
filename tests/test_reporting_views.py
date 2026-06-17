@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from mosec.audit import AuditEntry
 from mosec.findings import CodeLocation, Confidence, Evidence, Finding, FindingStatus, Severity
 from mosec.reporting import render_current_view_json, render_current_view_sarif, render_current_view_text
 from mosec.state import SessionState
@@ -160,3 +161,41 @@ def test_render_current_view_policy_branch_exports_branch_state() -> None:
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "policy-branch"
     assert sarif["runs"][0]["invocations"][0]["properties"]["policy_branch"] == "main"
     assert sarif["runs"][0]["invocations"][0]["properties"]["policy_branch_threshold"] == "critical"
+
+
+def test_render_current_view_audit_trail_exports_audit_entries() -> None:
+    state = SessionState()
+    state.audit_log = [
+        AuditEntry(
+            action="scan",
+            subject_type="workspace",
+            subject_id="./fixtures",
+            decision="prepared",
+            actor="ui",
+            metadata={"mode": "web", "output_format": "json"},
+        ),
+        AuditEntry(
+            action="policy",
+            subject_type="scan",
+            subject_id="./fixtures",
+            decision="blocked",
+            reason="threshold=high",
+            actor="scanner",
+        ),
+    ]
+    state.set_current_view("audit-trail")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "audit-trail"
+    assert payload["view"]["title"] == "Audit trail"
+    assert payload["audit_trail"]["count"] == 2
+    assert payload["current_view"]["count"] == 2
+    assert payload["current_view"]["audit_entries"][0]["action"] == "scan"
+    assert "Audit trail" in text
+    assert "Audit entries: 2" in text
+    assert "scan workspace:./fixtures" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "audit-trail"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["audit_entries"] == 2

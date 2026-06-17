@@ -151,6 +151,7 @@ The registry should store:
 - `/policy`
 - `/policy-threshold`
 - `/policy-branch`
+- `/audit-trail`
 - `/mobile`
 
 ### Configuration

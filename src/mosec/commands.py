@@ -312,6 +312,15 @@ class CommandRegistry:
                     PromptSpec(key="branch", question="Branch name", default="main"),
                 ),
             )
+        if command.name == "/audit-trail":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=(
+                    "Audit trail opened.",
+                    "Inspect recorded command, scan, policy, and review actions.",
+                ),
+            )
         if command.name in {"/findings", "/finding-detail", "/reports", "/mobile", "/workspace", "/history", "/settings"}:
             return CommandOutcome(
                 command=command,
@@ -608,6 +617,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/branch-policy",),
                 summary="Review a branch policy",
                 description="Inspect the branch-specific policy threshold and overrides.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/audit-trail",
+                aliases=("/audit",),
+                summary="Open the audit trail view",
+                description="Inspect recorded command, scan, policy, and review actions.",
                 category="Analysis",
                 implemented=True,
             ),

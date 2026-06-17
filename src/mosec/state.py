@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
+from .audit import AuditEntry
 from .commands import PromptSpec, normalize_command_text
 from .findings import TriageStatus
 from .policy import parse_fail_on_threshold, resolve_policy_threshold
@@ -25,6 +26,7 @@ class SessionState:
     findings: list["Finding"] = None  # type: ignore[assignment]
     baseline_findings: list["Finding"] = field(default_factory=list)
     suppressed_findings: list["Finding"] = field(default_factory=list)
+    audit_log: list[AuditEntry] = field(default_factory=list)
     rule_packs: list[RulePack] = field(default_factory=build_builtin_rule_packs)
     selected_rule_pack_index: int = 0
     selected_rule_index: int = 0
@@ -55,6 +57,14 @@ class SessionState:
         normalized = normalize_command_text(command)
         if normalized is not None:
             self.last_command = normalized
+            self.audit_log.append(
+                AuditEntry(
+                    action="command",
+                    subject_type="command",
+                    subject_id=normalized,
+                    actor="user",
+                )
+            )
         elif command.strip():
             self.last_command = command.strip()
 
@@ -66,6 +76,19 @@ class SessionState:
         self.last_scan_target = self.workspace
         self.last_scan_mode = self.scan_mode
         self.last_scan_format = self.output_format
+        self.audit_log.append(
+            AuditEntry(
+                action="scan",
+                subject_type="workspace",
+                subject_id=self.workspace,
+                decision="prepared",
+                actor="ui",
+                metadata={
+                    "mode": self.scan_mode,
+                    "output_format": self.output_format,
+                },
+            )
+        )
         self.set_status(f"Scan prepared for {self.workspace}", kind="success")
 
     def repeat_last_scan(self) -> bool:
@@ -108,6 +131,7 @@ class SessionState:
         *,
         baseline_findings: list["Finding"] | None = None,
         suppressed_findings: list["Finding"] | None = None,
+        audit_log: list[AuditEntry] | None = None,
     ) -> None:
         self.store_findings(findings)
         if baseline_findings is not None:
@@ -115,6 +139,8 @@ class SessionState:
         if suppressed_findings is not None:
             self.suppressed_findings = list(suppressed_findings)
             self.selected_suppressed_finding_index = 0
+        if audit_log is not None:
+            self.audit_log = list(audit_log)
 
     def set_findings_search_query(self, query: str | None) -> None:
         value = query.strip() if query is not None else ""
@@ -284,6 +310,7 @@ class SessionState:
             "findings-baselined": "Baselined findings",
             "suppression-review": "Suppression review",
             "finding-detail": "Finding detail",
+            "audit-trail": "Audit trail",
             "rules": "Rules",
             "rule-detail": "Rule detail",
             "workspace": "Workspace",
@@ -333,6 +360,11 @@ class SessionState:
         if self.current_view in {"findings", "scan", "finding-detail"}:
             return self.selected_finding()
         return None
+
+    def current_view_audit_entries(self) -> list[AuditEntry]:
+        if self.current_view == "audit-trail":
+            return list(self.audit_log)
+        return []
 
     def update_selected_finding_triage(
         self,
@@ -390,6 +422,7 @@ class SessionState:
             f"Loaded findings: {len(self.findings)}",
             f"Baselined findings: {len(self.baseline_findings)}",
             f"Suppressed findings: {len(self.suppressed_findings)}",
+            f"Audit entries: {len(self.audit_log)}",
             f"Loaded rule packs: {len(self.rule_packs)}",
             f"Loaded rules: {sum(len(pack.rules) for pack in self.rule_packs)}",
             f"Findings search: {self.findings_search_query or 'none'}",
