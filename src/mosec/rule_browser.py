@@ -257,6 +257,88 @@ def render_rule_browser_lines(
     )
 
 
+def rule_detail_lines(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> tuple[str, ...]:
+    selected_pack = _selected_rule_pack(rule_packs, selected_pack_index)
+    if selected_pack is None:
+        return (
+            "Rule detail",
+            "No rule packs are loaded yet.",
+        )
+
+    selected_rule = _selected_rule(selected_pack, selected_rule_index)
+    if selected_rule is None:
+        return (
+            "Rule detail",
+            "No rule is selected.",
+            f"Selected pack: {_pack_label(selected_pack)}",
+        )
+
+    sibling_rules = [
+        rule
+        for rule in selected_pack.rules
+        if rule.category == selected_rule.category and rule.id != selected_rule.id
+    ]
+
+    lines = [
+        "Rule detail",
+        f"Pack: {_pack_label(selected_pack)}",
+        f"Rule ID: {selected_rule.id}",
+        f"Name: {selected_rule.name}",
+        f"Category: {selected_rule.category.value}",
+        f"Severity: {selected_rule.severity.value}",
+        f"Confidence: {selected_rule.confidence.value}",
+        f"Strategy: {selected_rule.strategy.value}",
+        f"Description: {selected_rule.description}",
+        f"Remediation: {selected_rule.remediation or 'n/a'}",
+        f"Targets: {', '.join(target.language + (f'/{target.framework}' if target.framework else '') for target in selected_rule.targets) if selected_rule.targets else 'n/a'}",
+        f"OWASP: {', '.join(selected_rule.owasp) if selected_rule.owasp else 'n/a'}",
+        f"CWE: {', '.join(selected_rule.cwe) if selected_rule.cwe else 'n/a'}",
+        f"Tags: {_rule_tags(selected_rule)}",
+    ]
+
+    if selected_rule.patterns:
+        lines.append("Patterns:")
+        for pattern in selected_rule.patterns:
+            description = f" ({pattern.description})" if pattern.description else ""
+            lines.append(f"  - {pattern.kind}: {pattern.value}{description}")
+
+    if selected_rule.metadata:
+        lines.append("Metadata:")
+        for key in sorted(selected_rule.metadata):
+            lines.append(f"  - {key}: {selected_rule.metadata[key]}")
+
+    if sibling_rules:
+        lines.append("")
+        lines.append("Same-category rules")
+        for rule in sibling_rules[:8]:
+            lines.append(f"  - {_rule_summary(rule)}")
+        if len(sibling_rules) > 8:
+            lines.append(f"  ... {len(sibling_rules) - 8} more")
+
+    lines.append("")
+    lines.append("Actions")
+    lines.append("  /rule-detail | /rules | /rule-pack-next | /rule-pack-prev | /rule-pack-select")
+    return tuple(lines)
+
+
+def render_rule_detail_lines(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> tuple[str, ...]:
+    return rule_detail_lines(
+        rule_packs,
+        selected_pack_index=selected_pack_index,
+        selected_rule_index=selected_rule_index,
+    )
+
+
 def rule_browser_payload(
     rule_packs: Sequence[RulePack],
     *,
@@ -294,6 +376,24 @@ def rule_browser_payload(
         "selected_rule": selected_rule_dict,
         "categories": categories,
     }
+
+
+def rule_detail_payload(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> dict[str, Any]:
+    payload = rule_browser_payload(
+        rule_packs,
+        selected_pack_index=selected_pack_index,
+        selected_rule_index=selected_rule_index,
+    )
+    payload["rule_detail"] = {
+        "selected_pack": payload.get("selected_pack"),
+        "selected_rule": payload.get("selected_rule"),
+    }
+    return payload
 
 
 def rule_browser_sarif(
@@ -360,6 +460,26 @@ def rule_browser_sarif(
     }
 
 
+def rule_detail_sarif(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> dict[str, Any]:
+    sarif = rule_browser_sarif(
+        rule_packs,
+        selected_pack_index=selected_pack_index,
+        selected_rule_index=selected_rule_index,
+    )
+    try:
+        invocation = sarif["runs"][0]["invocations"][0]["properties"]
+    except (KeyError, IndexError, TypeError):
+        return sarif
+    invocation["view_id"] = "rule-detail"
+    invocation["view_title"] = "Rule detail"
+    return sarif
+
+
 def render_rule_browser_json(
     rule_packs: Sequence[RulePack],
     *,
@@ -368,6 +488,23 @@ def render_rule_browser_json(
 ) -> str:
     return json.dumps(
         rule_browser_payload(
+            rule_packs,
+            selected_pack_index=selected_pack_index,
+        selected_rule_index=selected_rule_index,
+    ),
+        indent=2,
+        sort_keys=True,
+    )
+
+
+def render_rule_detail_json(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> str:
+    return json.dumps(
+        rule_detail_payload(
             rule_packs,
             selected_pack_index=selected_pack_index,
             selected_rule_index=selected_rule_index,
@@ -385,6 +522,23 @@ def render_rule_browser_sarif(
 ) -> str:
     return json.dumps(
         rule_browser_sarif(
+            rule_packs,
+            selected_pack_index=selected_pack_index,
+            selected_rule_index=selected_rule_index,
+        ),
+        indent=2,
+        sort_keys=True,
+    )
+
+
+def render_rule_detail_sarif(
+    rule_packs: Sequence[RulePack],
+    *,
+    selected_pack_index: int = 0,
+    selected_rule_index: int = 0,
+) -> str:
+    return json.dumps(
+        rule_detail_sarif(
             rule_packs,
             selected_pack_index=selected_pack_index,
             selected_rule_index=selected_rule_index,

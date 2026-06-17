@@ -7,6 +7,9 @@ from mosec.rule_browser import (
     render_rule_browser_json,
     render_rule_browser_lines,
     render_rule_browser_sarif,
+    render_rule_detail_json,
+    render_rule_detail_lines,
+    render_rule_detail_sarif,
     resolve_rule_pack_index,
 )
 
@@ -47,6 +50,22 @@ def test_rule_browser_json_and_sarif_include_builtin_rules() -> None:
     assert any(rule["id"] == "WEB-SQLI-001" for rule in payload["selected_pack"]["rules"])
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rules"
     assert sarif["runs"][0]["tool"]["driver"]["rules"]
+
+
+def test_rule_detail_lines_and_exports_show_selected_rule_metadata() -> None:
+    packs = build_builtin_rule_packs()
+
+    lines = render_rule_detail_lines(packs)
+    payload = json.loads(render_rule_detail_json(packs))
+    sarif = json.loads(render_rule_detail_sarif(packs))
+
+    assert "Rule detail" in lines[0]
+    assert any("Rule ID: SEC-SECRET-001" in line for line in lines)
+    assert any("Patterns:" in line for line in lines)
+    assert payload["rule_detail"]["selected_rule"]["id"] == "SEC-SECRET-001"
+    assert payload["rule_detail"]["selected_pack"]["name"] == "builtin-detectors"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rule-detail"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_title"] == "Rule detail"
 
 
 def test_rule_browser_resolves_rule_pack_selection() -> None:

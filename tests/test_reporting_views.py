@@ -98,3 +98,21 @@ def test_render_current_view_rules_exports_rule_browser() -> None:
     assert "Selected pack: builtin-detectors@0.1.0" in text
     assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rules"
     assert sarif["runs"][0]["tool"]["driver"]["rules"]
+
+
+def test_render_current_view_rule_detail_exports_selected_rule() -> None:
+    state = SessionState()
+    state.set_current_view("rule-detail")
+
+    payload = json.loads(render_current_view_json(state))
+    text = render_current_view_text(state)
+    sarif = json.loads(render_current_view_sarif(state))
+
+    assert payload["view"]["id"] == "rule-detail"
+    assert payload["view"]["title"] == "Rule detail"
+    assert payload["rule_detail"]["selected_rule"]["id"] == "SEC-SECRET-001"
+    assert payload["current_view"]["selected_rule"]["id"] == "SEC-SECRET-001"
+    assert "Rule detail" in text
+    assert "Rule ID: SEC-SECRET-001" in text
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_id"] == "rule-detail"
+    assert sarif["runs"][0]["invocations"][0]["properties"]["view_title"] == "Rule detail"

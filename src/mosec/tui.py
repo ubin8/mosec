@@ -404,6 +404,14 @@ def _apply_rule_browser_workspace_change(
         state.set_current_view("rules")
         state.set_status("Rules browser opened.", kind="success")
         return tuple(render_current_view_text(state).splitlines())
+    if command_name == "/rule-detail":
+        selected = state.selected_rule()
+        if selected is None:
+            state.set_status("No rule selected.", kind="warning")
+            return ("No rule selected.",)
+        state.set_current_view("rule-detail")
+        state.set_status(f"Rule detail opened for {selected.id}.", kind="success")
+        return tuple(render_current_view_text(state).splitlines())
     if command_name == "/rule-pack-next":
         if not state.select_next_rule_pack():
             state.set_status("Only one rule pack available.", kind="warning")
@@ -682,7 +690,7 @@ def _launch_home_screen_curses(registry, state: SessionState) -> int:
             state.set_current_view("suppression-review")
             state.set_status("Suppression review workspace opened.")
             lines_to_render = _suppression_review_view_lines(state)
-        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+        elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/rules", "/rule-detail"}:
             lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
         elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
             "/reports",
@@ -977,7 +985,7 @@ def launch_home_screen(
         state.set_current_view("suppression-review")
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
-    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/rules", "/rule-detail"}:
         lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/rule-pack-next",
@@ -1084,7 +1092,7 @@ def launch_home_screen(
         state.set_current_view("suppression-review")
         state.set_status("Suppression review workspace opened.")
         lines_to_render = _suppression_review_view_lines(state)
-    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name == "/rules":
+    elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {"/rules", "/rule-detail"}:
         lines_to_render = _apply_rule_browser_workspace_change(state, outcome.command.name)
     elif outcome.kind == "workspace" and outcome.command is not None and outcome.command.name in {
         "/rule-pack-next",

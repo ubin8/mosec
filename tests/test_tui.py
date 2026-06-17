@@ -393,6 +393,19 @@ def test_launch_home_screen_rules_browser_shows_builtin_catalog(capsys) -> None:
     assert "Status [SUCCESS]: Rules browser opened." in output
 
 
+def test_launch_home_screen_rule_detail_shows_selected_rule(capsys) -> None:
+    def fake_input(prompt: str) -> str:
+        return "/rule-detail"
+
+    exit_code = launch_home_screen(width=96, height=36, interactive=True, input_func=fake_input)
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Rule detail" in output
+    assert "Rule ID: SEC-SECRET-001" in output
+    assert "Status [SUCCESS]: Rule detail opened for SEC-SECRET-001." in output
+
+
 def test_rule_browser_workspace_selection_moves_between_packs() -> None:
     from mosec.rule_browser import build_builtin_rule_pack
     from mosec.findings import Confidence

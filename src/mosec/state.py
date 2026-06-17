@@ -257,7 +257,10 @@ class SessionState:
         return titles.get(self.current_view, self.current_view.replace("-", " ").title())
 
     def current_view_rules(self) -> list["Rule"]:
-        if self.current_view not in {"rules", "rule-detail"}:
+        if self.current_view == "rule-detail":
+            selected = self.selected_rule()
+            return [] if selected is None else [selected]
+        if self.current_view != "rules":
             return []
         pack = self.selected_rule_pack()
         return [] if pack is None else list(pack.rules)

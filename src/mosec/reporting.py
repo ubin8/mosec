@@ -3,7 +3,14 @@ from __future__ import annotations
 import json
 
 from .models import ScanResult
-from .rule_browser import rule_browser_lines, rule_browser_payload, rule_browser_sarif
+from .rule_browser import (
+    render_rule_browser_json,
+    render_rule_browser_lines,
+    render_rule_browser_sarif,
+    render_rule_detail_json,
+    render_rule_detail_lines,
+    render_rule_detail_sarif,
+)
 from .state import SessionState
 
 
@@ -107,7 +114,7 @@ def render_sarif(result: ScanResult) -> str:
 
 
 def render_current_view_text(state: SessionState) -> str:
-    if state.current_view in {"rules", "rule-detail"}:
+    if state.current_view == "rule-detail":
         lines = [
             f"view: {state.current_view}",
             f"title: {state.current_view_title()}",
@@ -119,7 +126,34 @@ def render_current_view_text(state: SessionState) -> str:
         if selected is not None:
             lines.append(f"selected: {selected.id} - {selected.name}")
         lines.extend(state.summary_lines())
-        lines.extend(rule_browser_lines(state.rule_packs, selected_pack_index=state.selected_rule_pack_index, selected_rule_index=state.selected_rule_index))
+        lines.extend(
+            render_rule_detail_lines(
+                state.rule_packs,
+                selected_pack_index=state.selected_rule_pack_index,
+                selected_rule_index=state.selected_rule_index,
+            )
+        )
+        return "\n".join(lines)
+
+    if state.current_view == "rules":
+        lines = [
+            f"view: {state.current_view}",
+            f"title: {state.current_view_title()}",
+            f"workspace: {state.workspace}",
+            f"mode: {state.scan_mode}",
+            f"format: {state.output_format}",
+        ]
+        selected = state.current_view_selected_rule()
+        if selected is not None:
+            lines.append(f"selected: {selected.id} - {selected.name}")
+        lines.extend(state.summary_lines())
+        lines.extend(
+            render_rule_browser_lines(
+                state.rule_packs,
+                selected_pack_index=state.selected_rule_pack_index,
+                selected_rule_index=state.selected_rule_index,
+            )
+        )
         return "\n".join(lines)
 
     lines = [
@@ -183,25 +217,37 @@ def render_current_view_json(state: SessionState) -> str:
             "selected_rule": None if selected_rule is None else selected_rule.to_dict(),
         },
     }
-    if state.current_view in {"rules", "rule-detail"}:
-        payload["rule_browser"] = rule_browser_payload(
-            state.rule_packs,
-            selected_pack_index=state.selected_rule_pack_index,
-            selected_rule_index=state.selected_rule_index,
+    if state.current_view == "rule-detail":
+        payload["rule_detail"] = json.loads(
+            render_rule_detail_json(
+                state.rule_packs,
+                selected_pack_index=state.selected_rule_pack_index,
+                selected_rule_index=state.selected_rule_index,
+            )
+        )
+    elif state.current_view == "rules":
+        payload["rule_browser"] = json.loads(
+            render_rule_browser_json(
+                state.rule_packs,
+                selected_pack_index=state.selected_rule_pack_index,
+                selected_rule_index=state.selected_rule_index,
+            )
         )
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
 def render_current_view_sarif(state: SessionState) -> str:
-    if state.current_view in {"rules", "rule-detail"}:
-        return json.dumps(
-            rule_browser_sarif(
-                state.rule_packs,
-                selected_pack_index=state.selected_rule_pack_index,
-                selected_rule_index=state.selected_rule_index,
-            ),
-            indent=2,
-            sort_keys=True,
+    if state.current_view == "rule-detail":
+        return render_rule_detail_sarif(
+            state.rule_packs,
+            selected_pack_index=state.selected_rule_pack_index,
+            selected_rule_index=state.selected_rule_index,
+        )
+    if state.current_view == "rules":
+        return render_rule_browser_sarif(
+            state.rule_packs,
+            selected_pack_index=state.selected_rule_pack_index,
+            selected_rule_index=state.selected_rule_index,
         )
 
     findings = state.current_view_findings()

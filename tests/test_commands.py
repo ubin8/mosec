@@ -92,6 +92,19 @@ def test_command_registry_includes_finding_detail_view() -> None:
     assert detail_result.kind == "workspace"
 
 
+def test_command_registry_includes_rule_detail_view() -> None:
+    registry = build_default_command_registry()
+
+    detail_command = registry.resolve("/rule")
+    detail_result = registry.execute("/rule-detail")
+
+    assert detail_command is not None
+    assert detail_command.name == "/rule-detail"
+    assert detail_command.implemented is True
+    assert detail_result.kind == "workspace"
+    assert "Rule detail opened." in detail_result.message_lines[0]
+
+
 def test_command_registry_includes_rules_browser() -> None:
     registry = build_default_command_registry()
 

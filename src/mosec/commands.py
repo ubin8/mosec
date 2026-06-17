@@ -255,6 +255,15 @@ class CommandRegistry:
                     "Browse builtin rule packs and inspect detector coverage.",
                 ),
             )
+        if command.name == "/rule-detail":
+            return CommandOutcome(
+                command=command,
+                kind="workspace",
+                message_lines=(
+                    "Rule detail opened.",
+                    "Inspect the currently selected rule in detail.",
+                ),
+            )
         if command.name == "/rule-pack-next":
             return CommandOutcome(
                 command=command,
@@ -516,6 +525,14 @@ def build_default_command_registry() -> CommandRegistry:
                 aliases=("/rulebook",),
                 summary="Open the rules browser",
                 description="Inspect builtin and custom rule packs.",
+                category="Analysis",
+                implemented=True,
+            ),
+            CommandSpec(
+                name="/rule-detail",
+                aliases=("/rule",),
+                summary="Open the selected rule detail",
+                description="Inspect the selected rule in the browser in detail.",
                 category="Analysis",
                 implemented=True,
             ),
